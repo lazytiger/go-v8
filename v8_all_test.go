@@ -12,14 +12,14 @@ func init() {
 }
 
 func Test_HelloWorld(t *testing.T) {
-	context := DefaultEngine.NewContext()
-	script := context.CompileScript("'Hello ' + 'World!'")
-	value := script.Run()
+	context := Default.NewContext()
+	script := context.Compile("'Hello ' + 'World!'", nil, nil)
+	value := script.Run(context)
 	result := value.ToString()
 	if result != "Hello World!" {
 		t.FailNow()
 	}
-	println(result)
+	//println(result)
 }
 
 func Test_ThreadSafe1(t *testing.T) {
@@ -29,11 +29,12 @@ func Test_ThreadSafe1(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		wg.Add(1)
 		go func() {
-			context := DefaultEngine.NewContext()
-			script := context.CompileScript("'Hello ' + 'World!'")
-			value := script.Run()
+			context := Default.NewContext()
+			script := context.Compile("'Hello ' + 'World!'", nil, nil)
+			value := script.Run(context)
 			result := value.ToString()
 			fail = fail || result != "Hello World!"
+			runtime.GC()
 			wg.Done()
 		}()
 	}
@@ -49,17 +50,18 @@ func Test_ThreadSafe2(t *testing.T) {
 	myrand := rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	fail := false
-	context := DefaultEngine.NewContext()
+	context := Default.NewContext()
 
 	wg := new(sync.WaitGroup)
 	for i := 0; i < 100; i++ {
 		wg.Add(1)
 		go func() {
 			time.Sleep(time.Duration(myrand.Intn(500)) * time.Millisecond)
-			script := context.CompileScript("'Hello ' + 'World!'")
-			value := script.Run()
+			script := context.Compile("'Hello ' + 'World!'", nil, nil)
+			value := script.Run(context)
 			result := value.ToString()
 			fail = fail || result != "Hello World!"
+			runtime.GC()
 			wg.Done()
 		}()
 	}
@@ -75,17 +77,18 @@ func Test_ThreadSafe3(t *testing.T) {
 	myrand := rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	fail := false
-	context := DefaultEngine.NewContext()
-	script := context.CompileScript("'Hello ' + 'World!'")
+	context := Default.NewContext()
+	script := context.Compile("'Hello ' + 'World!'", nil, nil)
 
 	wg := new(sync.WaitGroup)
 	for i := 0; i < 100; i++ {
 		wg.Add(1)
 		go func() {
 			time.Sleep(time.Duration(myrand.Intn(500)) * time.Millisecond)
-			value := script.Run()
+			value := script.Run(context)
 			result := value.ToString()
 			fail = fail || result != "Hello World!"
+			runtime.GC()
 			wg.Done()
 		}()
 	}
@@ -101,9 +104,9 @@ func Test_ThreadSafe4(t *testing.T) {
 	myrand := rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	fail := false
-	context := DefaultEngine.NewContext()
-	script := context.CompileScript("'Hello ' + 'World!'")
-	value := script.Run()
+	context := Default.NewContext()
+	script := context.Compile("'Hello ' + 'World!'", nil, nil)
+	value := script.Run(context)
 
 	wg := new(sync.WaitGroup)
 	for i := 0; i < 100; i++ {
@@ -112,6 +115,7 @@ func Test_ThreadSafe4(t *testing.T) {
 			time.Sleep(time.Duration(myrand.Intn(500)) * time.Millisecond)
 			result := value.ToString()
 			fail = fail || result != "Hello World!"
+			runtime.GC()
 			wg.Done()
 		}()
 	}
@@ -124,11 +128,9 @@ func Test_ThreadSafe4(t *testing.T) {
 }
 
 func Test_ThreadSafe5(t *testing.T) {
-	myrand := rand.New(rand.NewSource(time.Now().UnixNano()))
-
 	fail := false
 	gonum := 100
-	contextChan := make(chan *Context, gonum)
+	contextChan := make(chan *Context, gonum*2)
 	scriptChan := make(chan *Script, gonum)
 	valueChan := make(chan *Value, gonum)
 
@@ -137,27 +139,25 @@ func Test_ThreadSafe5(t *testing.T) {
 		wg.Add(1)
 
 		go func() {
-			time.Sleep(time.Duration(myrand.Intn(500)) * time.Millisecond)
-			contextChan <- DefaultEngine.NewContext()
+			contextChan <- Default.NewContext()
 		}()
 
 		go func() {
-			time.Sleep(time.Duration(myrand.Intn(500)) * time.Millisecond)
+			context := Default.NewContext()
+			scriptChan <- context.Compile("'Hello ' + 'World!'", nil, nil)
+		}()
+
+		go func() {
 			context := <-contextChan
-			scriptChan <- context.CompileScript("'Hello ' + 'World!'")
-		}()
-
-		go func() {
-			time.Sleep(time.Duration(myrand.Intn(500)) * time.Millisecond)
 			script := <-scriptChan
-			valueChan <- script.Run()
+			valueChan <- script.Run(context)
 		}()
 
 		go func() {
-			time.Sleep(time.Duration(myrand.Intn(500)) * time.Millisecond)
 			value := <-valueChan
 			result := value.ToString()
 			fail = fail || result != "Hello World!"
+			runtime.GC()
 			wg.Done()
 		}()
 	}
@@ -170,33 +170,69 @@ func Test_ThreadSafe5(t *testing.T) {
 	}
 }
 
+func Test_PreCompile(t *testing.T) {
+	code := "'Hello ' + 'PreCompile!'"
+	scriptData1 := Default.PreCompile(code)
+
+	data := scriptData1.Data()
+	scriptData2 := NewScriptData(data)
+	context := Default.NewContext()
+	script := context.Compile(code, nil, scriptData2)
+	value := script.Run(context)
+	result := value.ToString()
+	if result != "Hello PreCompile!" {
+		t.FailNow()
+	}
+	//println(result)
+}
+
 func Benchmark_NewContext(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		DefaultEngine.NewContext()
+		Default.NewContext()
 	}
 }
 
-func Benchmark_CompileScript(b *testing.B) {
+func Benchmark_Compile(b *testing.B) {
 	b.StartTimer()
-	context := DefaultEngine.NewContext()
+	context := Default.NewContext()
 	scripts := make([]string, b.N)
 	for i := 0; i < b.N; i++ {
-		scripts[i] = "'Hello ' + '" + strconv.Itoa(i) + "'"
+		scripts[i] = `function myfunc(a, b) { 
+			return 'Hello ' + '` + strconv.Itoa(i) + `' + a + b
+		}`
 	}
 	b.StartTimer()
 
 	for i := 0; i < b.N; i++ {
-		context.CompileScript(scripts[i])
+		context.Compile(scripts[i], nil, nil)
+	}
+}
+
+func Benchmark_PreCompile(b *testing.B) {
+	b.StartTimer()
+	context := Default.NewContext()
+	scripts := make([]string, b.N)
+	scriptDatas := make([]*ScriptData, b.N)
+	for i := 0; i < b.N; i++ {
+		scripts[i] = `function myfunc(a, b) { 
+			return 'Hello ' + '` + strconv.Itoa(i) + `' + a + b
+		}`
+		scriptDatas[i] = Default.PreCompile(scripts[i])
+	}
+	b.StartTimer()
+
+	for i := 0; i < b.N; i++ {
+		context.Compile(scripts[i], nil, scriptDatas[i])
 	}
 }
 
 func Benchmark_RunScript(b *testing.B) {
 	b.StartTimer()
-	context := DefaultEngine.NewContext()
-	script := context.CompileScript("'Hello ' + 'World!'")
+	context := Default.NewContext()
+	script := context.Compile("'Hello ' + 'World!'", nil, nil)
 	b.StartTimer()
 
 	for i := 0; i < b.N; i++ {
-		script.Run()
+		script.Run(context)
 	}
 }

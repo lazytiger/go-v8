@@ -7,6 +7,8 @@ import "C"
 import "unsafe"
 import "runtime"
 
+// A sandboxed execution context with its own set of built-in objects
+// and functions.
 type Context struct {
 	self   unsafe.Pointer
 	engine *Engine

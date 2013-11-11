@@ -9,8 +9,10 @@ import "runtime"
 
 var traceDispose = false
 
-var DefaultEngine = NewEngine()
+var Default = NewEngine()
 
+// Represents an isolated instance of the V8 engine.
+// Objects from one engine must not be used in other engine.
 type Engine struct {
 	self unsafe.Pointer
 }

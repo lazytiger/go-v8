@@ -15,4 +15,4 @@ fi
 CGO_LDFLAGS="$libv8_base $libv8_snapshot" \
 CGO_CFLAGS="-I $v8_path/include" \
 CGO_CXXFLAGS="-I $v8_path/include" \
-go test -run="$1" -bench="$2" -v 2> test.log
+go test -run="$1" -bench="$2" -v
