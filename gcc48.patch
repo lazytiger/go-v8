@@ -1,0 +1,4 @@
+170c170
+<                     '-pthread', '-fno-exceptions', '-pedantic' ],
+---
+>                     '-pthread', '-fno-exceptions', '-pedantic', '-Wno-unused-local-typedefs', '-Wno-aggressive-loop-optimizations' ],
