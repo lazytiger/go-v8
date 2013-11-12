@@ -1,7 +1,7 @@
 package v8
 
 /*
-#include "v8_warp.h"
+#include "v8_wrap.h"
 */
 import "C"
 import "unsafe"

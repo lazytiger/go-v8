@@ -81,7 +81,7 @@ public:
 	Local<Value> local_value = Local<Value>::New(isolate, val->self)
 
 /*
-isolate warppers
+isolate wrappers
 */
 void* V8_NewIsolate() {
 	return (void*)Isolate::New();
@@ -92,7 +92,7 @@ void V8_DisposeIsolate(void* isolate) {
 }
 
 /*
-context warppers
+context wrappers
 */
 void* V8_NewContext(void* isolate_ptr) {
 	ISOLATE_SCOPE(static_cast<Isolate*>(isolate_ptr));
@@ -110,7 +110,7 @@ void V8_DisposeContext(void* context) {
 }
 
 /*
-script warppers
+script wrappers
 */
 void* V8_Compile(void* context, const char* code, void* script_origin,void* script_data) {
 	V8_Context* ctx = static_cast<V8_Context*>(context);
@@ -158,7 +158,7 @@ void* V8_RunScript(void* context, void* script) {
 }
 
 /*
-script data warppers
+script data wrappers
 */
 void* V8_PreCompile(void* isolate_ptr, const char* code) {
 	ISOLATE_SCOPE(static_cast<Isolate*>(isolate_ptr));
@@ -187,7 +187,7 @@ int V8_ScriptDataHasError(void* script_data) {
 }
 
 /*
-script origin warppers
+script origin wrappers
 */
 void* V8_NewScriptOrigin(void* isolate_ptr, const char* name, int line_offset, int column_offset) {
 	ISOLATE_SCOPE(static_cast<Isolate*>(isolate_ptr));
@@ -204,7 +204,7 @@ void V8_DisposeScriptOrigin(void* script_origin) {
 }
 
 /*
-Value warppers
+Value wrappers
 */
 void V8_DisposeValue(void* value) {
 	delete static_cast<V8_Value*>(value);

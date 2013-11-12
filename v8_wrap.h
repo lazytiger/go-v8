@@ -8,21 +8,21 @@ extern "C" {
 #endif
 
 /*
-isolate warppers
+isolate wrappers
 */
 extern void* V8_NewIsolate();
 
 extern void V8_DisposeIsolate(void* isolate);
 
 /*
-context warppers
+context wrappers
 */
 extern void* V8_NewContext(void* isolate_ptr);
 
 extern void V8_DisposeContext(void* context);
 
 /*
-script warppers
+script wrappers
 */
 extern void* V8_Compile(void* context, const char* code, void* script_origin, void* script_data);
 
@@ -31,7 +31,7 @@ extern void V8_DisposeScript(void* script);
 extern void* V8_RunScript(void* context, void* script);
 
 /*
-script data warppers
+script data wrappers
 */
 extern void* V8_PreCompile(void* isolate_ptr, const char* code);
 
@@ -46,14 +46,14 @@ extern const char* V8_ScriptDataGetData(void* script_data);
 extern int V8_ScriptDataHasError(void* script_data);
 
 /*
-script origin warppers
+script origin wrappers
 */
 extern void* V8_NewScriptOrigin(void* isolate_ptr, const char* name, int line_offset, int column_offset);
 
 extern void V8_DisposeScriptOrigin(void* script_origin);
 
 /*
-value warppers
+value wrappers
 */
 extern void V8_DisposeValue(void* value);
 
