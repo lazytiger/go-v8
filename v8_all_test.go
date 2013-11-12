@@ -1,14 +1,62 @@
 package v8
 
-import "sync"
-import "testing"
-import "runtime"
-import "time"
-import "math/rand"
-import "strconv"
+import (
+	"io/ioutil"
+	"math/rand"
+	"os"
+	"runtime"
+	"runtime/pprof"
+	"strconv"
+	"strings"
+	"sync"
+	"testing"
+	"time"
+)
 
 func init() {
+	rand.Seed(time.Now().UnixNano())
 	//traceDispose = true
+	go func() {
+		for {
+			input, err := ioutil.ReadFile("test.cmd")
+
+			if err == nil && len(input) > 0 {
+				ioutil.WriteFile("test.cmd", []byte(""), 0744)
+
+				cmd := strings.Trim(string(input), " \n\r\t")
+
+				var p *pprof.Profile
+
+				switch cmd {
+				case "lookup goroutine":
+					p = pprof.Lookup("goroutine")
+				case "lookup heap":
+					p = pprof.Lookup("heap")
+				case "lookup threadcreate":
+					p = pprof.Lookup("threadcreate")
+				default:
+					println("unknow command: '" + cmd + "'")
+				}
+
+				if p != nil {
+					file, err := os.Create("test.out")
+					if err != nil {
+						println("couldn't create test.out")
+					} else {
+						p.WriteTo(file, 2)
+					}
+				}
+			}
+
+			time.Sleep(2 * time.Second)
+		}
+	}()
+}
+
+func rand_sched(max int) {
+	for j := rand.Intn(max); j > 0; j-- {
+		runtime.Gosched()
+	}
 }
 
 func Test_HelloWorld(t *testing.T) {
@@ -19,6 +67,8 @@ func Test_HelloWorld(t *testing.T) {
 	if result != "Hello World!" {
 		t.FailNow()
 	}
+
+	runtime.GC()
 	//println(result)
 }
 
@@ -47,8 +97,6 @@ func Test_ThreadSafe1(t *testing.T) {
 }
 
 func Test_ThreadSafe2(t *testing.T) {
-	myrand := rand.New(rand.NewSource(time.Now().UnixNano()))
-
 	fail := false
 	context := Default.NewContext()
 
@@ -56,7 +104,8 @@ func Test_ThreadSafe2(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		wg.Add(1)
 		go func() {
-			time.Sleep(time.Duration(myrand.Intn(500)) * time.Millisecond)
+			rand_sched(200)
+
 			script := context.Compile("'Hello ' + 'World!'", nil, nil)
 			value := script.Run(context)
 			result := value.ToString()
@@ -74,8 +123,6 @@ func Test_ThreadSafe2(t *testing.T) {
 }
 
 func Test_ThreadSafe3(t *testing.T) {
-	myrand := rand.New(rand.NewSource(time.Now().UnixNano()))
-
 	fail := false
 	context := Default.NewContext()
 	script := context.Compile("'Hello ' + 'World!'", nil, nil)
@@ -84,7 +131,8 @@ func Test_ThreadSafe3(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		wg.Add(1)
 		go func() {
-			time.Sleep(time.Duration(myrand.Intn(500)) * time.Millisecond)
+			rand_sched(200)
+
 			value := script.Run(context)
 			result := value.ToString()
 			fail = fail || result != "Hello World!"
@@ -101,8 +149,6 @@ func Test_ThreadSafe3(t *testing.T) {
 }
 
 func Test_ThreadSafe4(t *testing.T) {
-	myrand := rand.New(rand.NewSource(time.Now().UnixNano()))
-
 	fail := false
 	context := Default.NewContext()
 	script := context.Compile("'Hello ' + 'World!'", nil, nil)
@@ -112,7 +158,8 @@ func Test_ThreadSafe4(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		wg.Add(1)
 		go func() {
-			time.Sleep(time.Duration(myrand.Intn(500)) * time.Millisecond)
+			rand_sched(200)
+
 			result := value.ToString()
 			fail = fail || result != "Hello World!"
 			runtime.GC()
@@ -134,26 +181,39 @@ func Test_ThreadSafe5(t *testing.T) {
 	scriptChan := make(chan *Script, gonum)
 	valueChan := make(chan *Value, gonum)
 
-	wg := new(sync.WaitGroup)
-	for i := 0; i < gonum; i++ {
-		wg.Add(1)
-
+	for i := 0; i < gonum*2; i++ {
 		go func() {
+			rand_sched(200)
+
 			contextChan <- Default.NewContext()
 		}()
+	}
 
+	for i := 0; i < gonum; i++ {
 		go func() {
-			context := Default.NewContext()
+			rand_sched(200)
+
+			context := <-contextChan
 			scriptChan <- context.Compile("'Hello ' + 'World!'", nil, nil)
 		}()
+	}
 
+	for i := 0; i < gonum; i++ {
 		go func() {
+			rand_sched(200)
+
 			context := <-contextChan
 			script := <-scriptChan
 			valueChan <- script.Run(context)
 		}()
+	}
 
+	wg := new(sync.WaitGroup)
+	for i := 0; i < gonum; i++ {
+		wg.Add(1)
 		go func() {
+			rand_sched(200)
+
 			value := <-valueChan
 			result := value.ToString()
 			fail = fail || result != "Hello World!"
@@ -161,8 +221,8 @@ func Test_ThreadSafe5(t *testing.T) {
 			wg.Done()
 		}()
 	}
-
 	wg.Wait()
+
 	runtime.GC()
 
 	if fail {
@@ -176,6 +236,7 @@ func Test_PreCompile(t *testing.T) {
 
 	data := scriptData1.Data()
 	scriptData2 := NewScriptData(data)
+
 	context := Default.NewContext()
 	script := context.Compile(code, nil, scriptData2)
 	value := script.Run(context)
@@ -183,13 +244,45 @@ func Test_PreCompile(t *testing.T) {
 	if result != "Hello PreCompile!" {
 		t.FailNow()
 	}
+
+	runtime.GC()
 	//println(result)
+}
+
+func Test_UnderscoreJS(t *testing.T) {
+	// Need download underscore.js from:
+	// https://raw.github.com/jashkenas/underscore/master/underscore.js
+	code, err := ioutil.ReadFile("underscore.js")
+
+	if err != nil {
+		return
+	}
+
+	context := Default.NewContext()
+	script := context.Compile(string(code), nil, nil)
+	script.Run(context)
+
+	test := "_.find([1, 2, 3, 4, 5, 6], function(num){ return num % 2 == 0; });"
+	testScript := context.Compile(test, nil, nil)
+	value := testScript.Run(context)
+
+	if value == nil || value.IsNumber() == false {
+		t.FailNow()
+	}
+
+	result := value.GetNumber()
+
+	if result != 2 {
+		t.FailNow()
+	}
 }
 
 func Benchmark_NewContext(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		Default.NewContext()
 	}
+
+	runtime.GC()
 }
 
 func Benchmark_Compile(b *testing.B) {
@@ -206,6 +299,8 @@ func Benchmark_Compile(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		context.Compile(scripts[i], nil, nil)
 	}
+
+	runtime.GC()
 }
 
 func Benchmark_PreCompile(b *testing.B) {
@@ -224,6 +319,8 @@ func Benchmark_PreCompile(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		context.Compile(scripts[i], nil, scriptDatas[i])
 	}
+
+	runtime.GC()
 }
 
 func Benchmark_RunScript(b *testing.B) {
@@ -235,4 +332,6 @@ func Benchmark_RunScript(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		script.Run(context)
 	}
+
+	runtime.GC()
 }

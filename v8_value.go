@@ -111,21 +111,21 @@ func (v *Value) IsRegExp() bool {
 }
 
 func (v *Value) GetBoolean() bool {
-	return C.V8_ValueGetBoolean() == 1
+	return C.V8_ValueGetBoolean(v.self) == 1
 }
 
 func (v *Value) GetNumber() float64 {
-	return float64(C.V8_ValueGetNumber())
+	return float64(C.V8_ValueGetNumber(v.self))
 }
 
 func (v *Value) GetInteger() int64 {
-	return int64(C.V8_ValueGetInteger())
+	return int64(C.V8_ValueGetInteger(v.self))
 }
 
 func (v *Value) GetUint32() uint32 {
-	return uint32(C.V8_ValueGetUint32())
+	return uint32(C.V8_ValueGetUint32(v.self))
 }
 
 func (v *Value) GetInt32() int32 {
-	return int32(C.V8_ValueGetInt32())
+	return int32(C.V8_ValueGetInt32(v.self))
 }

@@ -97,15 +97,15 @@ extern int V8_ValueIsNativeError(void* value);
 
 extern int V8_ValueIsRegExp(void* value);
 
-extern int V8_ValueGetBoolean();
+extern int V8_ValueGetBoolean(void* value);
   
-extern double V8_ValueGetNumber();
+extern double V8_ValueGetNumber(void* value);
 
-extern int64_t V8_ValueGetInteger();
+extern int64_t V8_ValueGetInteger(void* value);
 
-extern uint32_t V8_ValueGetUint32();
+extern uint32_t V8_ValueGetUint32(void* value);
 
-extern int32_t V8_ValueGetInt32();
+extern int32_t V8_ValueGetInt32(void* value);
 
 #ifdef __cplusplus
 } // extern "C"

@@ -18,7 +18,7 @@ v8_path="v8-$v8_version"
 
 # check v8 installation
 need_v8='false'
-if [ ! -d $v8_path ]; then
+if [ ! -d $v8_path ] || [ ! -d $v8_path/out/native/ ]; then
 	need_v8='true'
 else
 	libv8_base="`find $v8_path/out/native/ -name 'libv8_base.*.a' | head -1`"
@@ -51,7 +51,6 @@ if [ $need_v8 == 'true' ]; then
 	fi
 
 	# build
-	cd $v8_path
 	make i18nsupport=off native
 
 	# end
