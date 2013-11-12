@@ -13,6 +13,8 @@ import (
 	"time"
 )
 
+var Default = NewEngine()
+
 func init() {
 	rand.Seed(time.Now().UnixNano())
 	//traceDispose = true
@@ -247,6 +249,24 @@ func Test_PreCompile(t *testing.T) {
 
 	runtime.GC()
 	//println(result)
+}
+
+func Test_SpecialValues(t *testing.T) {
+	if !Default.Undefined().IsUndefined() {
+		t.FailNow()
+	}
+
+	if !Default.Null().IsNull() {
+		t.FailNow()
+	}
+
+	if !Default.True().IsTrue() {
+		t.FailNow()
+	}
+
+	if !Default.False().IsFalse() {
+		t.FailNow()
+	}
 }
 
 func Test_UnderscoreJS(t *testing.T) {

@@ -69,6 +69,17 @@ public:
 	Persistent<Value> self;
 };
 
+#define ISOLATE_SCOPE(isolate_ptr) \
+	Isolate* isolate = isolate_ptr; \
+	Locker locker(isolate); \
+	Isolate::Scope isolate_scope(isolate); \
+	HandleScope handle_scope(isolate) \
+
+#define VALUE_TO_LOCAL(value, local_value) \
+	V8_Value* val = static_cast<V8_Value*>(value); \
+	ISOLATE_SCOPE(val->GetIsolate()); \
+	Local<Value> local_value = Local<Value>::New(isolate, val->self)
+
 /*
 isolate warppers
 */
@@ -84,10 +95,7 @@ void V8_DisposeIsolate(void* isolate) {
 context warppers
 */
 void* V8_NewContext(void* isolate_ptr) {
-	Isolate* isolate = static_cast<Isolate*>(isolate_ptr);
-	Locker locker(isolate);
-	Isolate::Scope isolate_scope(isolate);
-	HandleScope handle_scope(isolate);
+	ISOLATE_SCOPE(static_cast<Isolate*>(isolate_ptr));
 	
 	Handle<Context> context = Context::New(isolate);
 
@@ -101,19 +109,13 @@ void V8_DisposeContext(void* context) {
 	delete static_cast<V8_Context*>(context);
 }
 
-#define ISOLATE_SCOPE(v) \
-	Isolate* isolate = v->GetIsolate(); \
-	Locker locker(isolate); \
-	Isolate::Scope isolate_scope(isolate); \
-	HandleScope handle_scope(isolate) \
-
 /*
 script warppers
 */
 void* V8_Compile(void* context, const char* code, void* script_origin,void* script_data) {
 	V8_Context* ctx = static_cast<V8_Context*>(context);
 
-	ISOLATE_SCOPE(ctx);
+	ISOLATE_SCOPE(ctx->GetIsolate());
 
 	Local<Context> local_context = Local<Context>::New(isolate, ctx->self);
 
@@ -140,7 +142,7 @@ void* V8_RunScript(void* context, void* script) {
 	V8_Context* ctx = static_cast<V8_Context*>(context);
 	V8_Script* spt = static_cast<V8_Script*>(script);
 
-	ISOLATE_SCOPE(ctx);
+	ISOLATE_SCOPE(ctx->GetIsolate());
 
 	Local<Context> local_context = Local<Context>::New(isolate, ctx->self);
 	Local<Script> local_script = Local<Script>::New(isolate, spt->self);
@@ -159,10 +161,7 @@ void* V8_RunScript(void* context, void* script) {
 script data warppers
 */
 void* V8_PreCompile(void* isolate_ptr, const char* code) {
-	Isolate* isolate = static_cast<Isolate*>(isolate_ptr);
-	Locker locker(isolate);
-	Isolate::Scope isolate_scope(isolate);
-	HandleScope handle_scope(isolate);
+	ISOLATE_SCOPE(static_cast<Isolate*>(isolate_ptr));
 
 	return (void*)ScriptData::PreCompile(String::New(code));
 }
@@ -191,10 +190,7 @@ int V8_ScriptDataHasError(void* script_data) {
 script origin warppers
 */
 void* V8_NewScriptOrigin(void* isolate_ptr, const char* name, int line_offset, int column_offset) {
-	Isolate* isolate = static_cast<Isolate*>(isolate_ptr);
-	Locker locker(isolate);
-	Isolate::Scope isolate_scope(isolate);
-	HandleScope handle_scope(isolate);
+	ISOLATE_SCOPE(static_cast<Isolate*>(isolate_ptr));
 
 	return (void*)(new ScriptOrigin(
 		String::NewFromOneByte(isolate, (uint8_t*)name),
@@ -213,11 +209,6 @@ Value warppers
 void V8_DisposeValue(void* value) {
 	delete static_cast<V8_Value*>(value);
 }
-
-#define VALUE_TO_LOCAL(value, local_value) \
-	V8_Value* val = static_cast<V8_Value*>(value); \
-	ISOLATE_SCOPE(val); \
-	Local<Value> local_value = Local<Value>::New(isolate, val->self)
 
 char* V8_ValueToString(void* value) {
 	VALUE_TO_LOCAL(value, local_value);
@@ -346,6 +337,29 @@ uint32_t V8_ValueGetUint32(void* value) {
 int32_t V8_ValueGetInt32(void* value) {
 	VALUE_TO_LOCAL(value, local_value);
 	return local_value->Int32Value();
+}
+
+/*
+special values
+*/
+void* V8_Undefined(void* isolate_ptr) {
+	ISOLATE_SCOPE(static_cast<Isolate*>(isolate_ptr));
+	return (void*)(new V8_Value(isolate, Undefined(isolate)));
+}
+
+void* V8_Null(void* isolate_ptr) {
+	ISOLATE_SCOPE(static_cast<Isolate*>(isolate_ptr));
+	return (void*)(new V8_Value(isolate, Null(isolate)));
+}
+
+void* V8_True(void* isolate_ptr) {
+	ISOLATE_SCOPE(static_cast<Isolate*>(isolate_ptr));
+	return (void*)(new V8_Value(isolate, True(isolate)));
+}
+
+void* V8_False(void* isolate_ptr) {
+	ISOLATE_SCOPE(static_cast<Isolate*>(isolate_ptr));
+	return (void*)(new V8_Value(isolate, False(isolate)));
 }
 
 } // extern "C"

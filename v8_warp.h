@@ -53,7 +53,7 @@ extern void* V8_NewScriptOrigin(void* isolate_ptr, const char* name, int line_of
 extern void V8_DisposeScriptOrigin(void* script_origin);
 
 /*
-Value warppers
+value warppers
 */
 extern void V8_DisposeValue(void* value);
 
@@ -106,6 +106,17 @@ extern int64_t V8_ValueGetInteger(void* value);
 extern uint32_t V8_ValueGetUint32(void* value);
 
 extern int32_t V8_ValueGetInt32(void* value);
+
+/*
+special values
+*/
+extern void* V8_Undefined(void* isolate_ptr);
+
+extern void* V8_Null(void* isolate_ptr);
+
+extern void* V8_True(void* isolate_ptr);
+
+extern void* V8_False(void* isolate_ptr);
 
 #ifdef __cplusplus
 } // extern "C"

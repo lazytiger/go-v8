@@ -56,10 +56,7 @@ func (c *Context) Compile(code string, origin *ScriptOrigin, data *ScriptData) *
 // Runs the script returning the resulting value.
 //
 func (s Script) Run(c *Context) *Value {
-	if v := C.V8_RunScript(c.self, s.self); v != nil {
-		return newValue(v)
-	}
-	return nil
+	return newValue(C.V8_RunScript(c.self, s.self))
 }
 
 // Pre-compilation data that can be associated with a script.  This
