@@ -16,8 +16,8 @@ import (
 var Default = NewEngine()
 
 func init() {
+	// traceDispose = true
 	rand.Seed(time.Now().UnixNano())
-	//traceDispose = true
 	go func() {
 		for {
 			input, err := ioutil.ReadFile("test.cmd")
@@ -249,6 +249,10 @@ func Test_PreCompile(t *testing.T) {
 
 	runtime.GC()
 	//println(result)
+}
+
+func Test_TypeCheck(t *testing.T) {
+	// TODO
 }
 
 func Test_SpecialValues(t *testing.T) {
