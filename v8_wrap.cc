@@ -418,6 +418,17 @@ void* V8_GetElement(void* value, uint32_t index) {
 	));
 }
 
+int V8_GetPropertyAttributes(void *value, const char* key, int key_length) {
+	VALUE_TO_LOCAL(value, local_value);
+
+	Local<Context> context = Local<Context>::New(isolate, val->context);
+	Context::Scope context_scope(context);
+
+	return Local<Object>::Cast(local_value)->GetPropertyAttributes(
+		String::NewFromOneByte(isolate, (uint8_t*)key, String::kNormalString, key_length)
+	);
+}
+
 int V8_ArrayLength(void* value) {
 	VALUE_TO_LOCAL(value, local_value);
 	return Local<Array>::Cast(local_value)->Length();

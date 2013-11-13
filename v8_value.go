@@ -108,6 +108,13 @@ func (o Object) GetElement(index uint32) *Value {
 	return newValue(C.V8_GetElement(o.self, C.uint32_t(index)))
 }
 
+func (o Object) GetPropertyAttributes(key string) PropertyAttribute {
+	keyPtr := unsafe.Pointer((*reflect.StringHeader)(unsafe.Pointer(&key)).Data)
+	return PropertyAttribute(C.V8_GetPropertyAttributes(
+		o.self, (*C.char)(keyPtr), C.int(len(key)),
+	))
+}
+
 // An instance of the built-in array constructor (ECMA-262, 15.4.2).
 //
 type Array struct {

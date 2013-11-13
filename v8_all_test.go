@@ -55,12 +55,6 @@ func init() {
 	}()
 }
 
-func rand_sched(max int) {
-	for j := rand.Intn(max); j > 0; j-- {
-		runtime.Gosched()
-	}
-}
-
 func Test_HelloWorld(t *testing.T) {
 	context := Default.NewContext()
 	script := context.Compile("'Hello ' + 'World!'", nil, nil)
@@ -68,89 +62,140 @@ func Test_HelloWorld(t *testing.T) {
 	result := value.ToString()
 
 	if result != "Hello World!" {
-		t.FailNow()
+		t.Fatal("result not match")
 	}
 
 	runtime.GC()
-	//println(result)
 }
 
 func Test_PreCompile(t *testing.T) {
+	// pre-compile
 	code := "'Hello ' + 'PreCompile!'"
 	scriptData1 := Default.PreCompile(code)
 
+	// test save and load script data
 	data := scriptData1.Data()
 	scriptData2 := NewScriptData(data)
 
+	// test compile with script data
 	context := Default.NewContext()
 	script := context.Compile(code, nil, scriptData2)
 	value := script.Run(context)
 	result := value.ToString()
 
 	if result != "Hello PreCompile!" {
-		t.FailNow()
+		t.Fatal("result not match")
 	}
 
 	runtime.GC()
-	//println(result)
+}
+
+func Test_TypeCheck(t *testing.T) {
+	// TODO
+}
+
+func Test_SpecialValues(t *testing.T) {
+	if !Default.Undefined().IsUndefined() {
+		t.Fatal("Undefined() not match")
+	}
+
+	if !Default.Null().IsNull() {
+		t.Fatal("Null() not match")
+	}
+
+	if !Default.True().IsTrue() {
+		t.Fatal("True() not match")
+	}
+
+	if !Default.False().IsFalse() {
+		t.Fatal("False() not match")
+	}
+
+	if Default.Undefined() != Default.Undefined() {
+		t.Fatal("Undefined() != Undefined()")
+	}
+
+	if Default.Null() != Default.Null() {
+		t.Fatal("Null() != Null()")
+	}
+
+	if Default.True() != Default.True() {
+		t.Fatal("True() != True()")
+	}
+
+	if Default.False() != Default.False() {
+		t.Fatal("False() != False()")
+	}
+
+	runtime.GC()
 }
 
 func Test_Object(t *testing.T) {
 	context := Default.NewContext()
-	script := context.Compile("a={'a':123};", nil, nil)
+	script := context.Compile("a={};", nil, nil)
 	value := script.Run(context)
-	result := value.ToObject()
+	object := value.ToObject()
 
-	if prop := result.GetProperty("a"); prop != nil {
-		if !prop.IsNumber() || prop.GetNumber() != 123 {
-			t.FailNow()
+	if prop := object.GetProperty("a"); prop != nil {
+		if !prop.IsUndefined() {
+			t.Fatal("property 'a' value not match")
 		}
 	} else {
-		t.FailNow()
+		t.Fatal("could't get property 'a'")
 	}
 
-	if !result.SetProperty("a", Default.True(), PA_None) {
-		t.FailNow()
+	if !object.SetProperty("b", Default.True(), PA_None) {
+		t.Fatal("could't set property 'b'")
 	}
 
-	if prop := result.GetProperty("a"); prop != nil {
+	if prop := object.GetProperty("b"); prop != nil {
 		if !prop.IsBoolean() || !prop.IsTrue() {
-			t.FailNow()
+			t.Fatal("property 'b' value not match")
 		}
 	} else {
-		t.FailNow()
+		t.Fatal("could't get property 'b'")
 	}
 
-	if !result.SetProperty("b", Default.False(), PA_None) {
-		t.FailNow()
+	if !object.SetProperty("中文字段", Default.False(), PA_None) {
+		t.Fatal("could't set non-ascii property")
 	}
 
-	if prop := result.GetProperty("b"); prop != nil {
+	if prop := object.GetProperty("中文字段"); prop != nil {
 		if !prop.IsBoolean() || !prop.IsFalse() {
-			t.FailNow()
+			t.Fatal("non-ascii property value not match")
 		}
 	} else {
-		t.FailNow()
+		t.Fatal("could't get non-ascii property")
 	}
 
-	if elem := result.GetElement(0); elem != nil {
+	if elem := object.GetElement(0); elem != nil {
 		if !elem.IsUndefined() {
-			t.FailNow()
+			t.Fatal("element 0 value not match")
 		}
 	} else {
-		t.FailNow()
+		t.Fatal("could't get element 0")
 	}
 
-	if !result.SetElement(0, Default.True()) {
-		t.FailNow()
+	if !object.SetElement(0, Default.True()) {
+		t.Fatal("could't set element 0")
 	}
 
-	if elem := result.GetElement(0); elem != nil {
+	if elem := object.GetElement(0); elem != nil {
 		if !elem.IsTrue() {
-			t.FailNow()
+			t.Fatal("element 0 value not match")
 		}
 	} else {
-		t.FailNow()
+		t.Fatal("could't get element 0")
+	}
+
+	if !object.SetProperty("x", Default.True(), PA_DontDelete|PA_ReadOnly) {
+		t.Fatal("could't set property with attributes")
+	}
+
+	attris := object.GetPropertyAttributes("x")
+
+	if attris&(PA_DontDelete|PA_DontDelete) != PA_DontDelete|PA_DontDelete {
+		t.Fatal("property attributes not match")
 	}
 
 	runtime.GC()
@@ -163,68 +208,46 @@ func Test_Array(t *testing.T) {
 	result := value.ToArray()
 
 	if result.Length() != 3 {
-		t.FailNow()
+		t.Fatal("array length not match")
 	}
 
 	if elem := result.GetElement(0); elem != nil {
 		if !elem.IsNumber() || elem.GetNumber() != 1 {
-			t.FailNow()
+			t.Fatal("element 0 value not match")
 		}
 	} else {
-		t.FailNow()
+		t.Fatal("could't get element 0")
 	}
 
 	if elem := result.GetElement(1); elem != nil {
 		if !elem.IsNumber() || elem.GetNumber() != 2 {
-			t.FailNow()
+			t.Fatal("element 1 value not match")
 		}
 	} else {
-		t.FailNow()
+		t.Fatal("could't get element 1")
 	}
 
 	if elem := result.GetElement(2); elem != nil {
 		if !elem.IsNumber() || elem.GetNumber() != 3 {
-			t.FailNow()
+			t.Fatal("element 2 value not match")
 		}
 	} else {
-		t.FailNow()
+		t.Fatal("could't get element 2")
 	}
 
 	if !result.SetElement(0, Default.True()) {
-		t.FailNow()
+		t.Fatal("could't set element")
 	}
 
 	if elem := result.GetElement(0); elem != nil {
 		if !elem.IsTrue() {
-			t.FailNow()
+			t.Fatal("element 0 value not match")
 		}
 	} else {
-		t.FailNow()
+		t.Fatal("could't get element 0")
 	}
 
 	runtime.GC()
-}
-
-func Test_TypeCheck(t *testing.T) {
-	// TODO
-}
-
-func Test_SpecialValues(t *testing.T) {
-	if !Default.Undefined().IsUndefined() {
-		t.FailNow()
-	}
-
-	if !Default.Null().IsNull() {
-		t.FailNow()
-	}
-
-	if !Default.True().IsTrue() {
-		t.FailNow()
-	}
-
-	if !Default.False().IsFalse() {
-		t.FailNow()
-	}
 }
 
 func Test_UnderscoreJS(t *testing.T) {
@@ -252,6 +275,12 @@ func Test_UnderscoreJS(t *testing.T) {
 
 	if result != 2 {
 		t.FailNow()
+	}
+}
+
+func rand_sched(max int) {
+	for j := rand.Intn(max); j > 0; j-- {
+		runtime.Gosched()
 	}
 }
 

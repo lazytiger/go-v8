@@ -129,6 +129,8 @@ extern int V8_SetElement(void* value, uint32_t index, void* elem_value);
 
 extern void* V8_GetElement(void* value, uint32_t index);
 
+extern int V8_GetPropertyAttributes(void *value, const char* key, int key_length);
+
 extern int V8_ArrayLength(void* value);
 
 #ifdef __cplusplus
