@@ -9,8 +9,8 @@ using namespace v8;
 class V8_Context {
 public:
 	V8_Context(Isolate* isolate, Handle<Context> context) {
-		self.Reset(isolate, context);
 		isolate_ = isolate;
+		self.Reset(isolate, context);
 	}
 
 	~V8_Context() {
@@ -32,8 +32,8 @@ public:
 class V8_Script {
 public:
 	V8_Script(Isolate* isolate, Handle<Script> script) {
-		self.Reset(isolate, script);
 		isolate_ = isolate;
+		self.Reset(isolate, script);
 	}
 
 	~V8_Script() {
@@ -51,14 +51,17 @@ public:
 
 class V8_Value {
 public:
-	V8_Value(Isolate* isolate, Handle<Value> value) {
-		self.Reset(isolate, value);
+	V8_Value(Isolate* isolate, Handle<Context> context_handle, Handle<Value> value) {
 		isolate_ = isolate;
+		self.Reset(isolate, value);
+		context.Reset(isolate, context_handle);
 	}
 
 	~V8_Value() {
 		self.Dispose();
 		self.Reset();
+		context.Dispose();
+		context.Reset();
 	}
 
 	Isolate* GetIsolate() {
@@ -67,6 +70,7 @@ public:
 
 	Isolate* isolate_;
 	Persistent<Value> self;
+	Persistent<Context> context;
 };
 
 #define ISOLATE_SCOPE(isolate_ptr) \
@@ -154,7 +158,7 @@ void* V8_RunScript(void* context, void* script) {
 	if (result.IsEmpty())
 		return NULL;
 
-	return (void*)(new V8_Value(isolate, result));
+	return (void*)(new V8_Value(isolate, local_context, result));
 }
 
 /*
@@ -189,11 +193,11 @@ int V8_ScriptDataHasError(void* script_data) {
 /*
 script origin wrappers
 */
-void* V8_NewScriptOrigin(void* isolate_ptr, const char* name, int line_offset, int column_offset) {
+void* V8_NewScriptOrigin(void* isolate_ptr, const char* name, int name_length, int line_offset, int column_offset) {
 	ISOLATE_SCOPE(static_cast<Isolate*>(isolate_ptr));
 
 	return (void*)(new ScriptOrigin(
-		String::NewFromOneByte(isolate, (uint8_t*)name),
+		String::NewFromOneByte(isolate, (uint8_t*)name, String::kNormalString, name_length),
 		Integer::New(line_offset),
 		Integer::New(line_offset)
 	));
@@ -342,24 +346,81 @@ int32_t V8_ValueGetInt32(void* value) {
 /*
 special values
 */
-void* V8_Undefined(void* isolate_ptr) {
+void* V8_Undefined(void* isolate_ptr, void*) {
 	ISOLATE_SCOPE(static_cast<Isolate*>(isolate_ptr));
-	return (void*)(new V8_Value(isolate, Undefined(isolate)));
+	return (void*)(new V8_Value(isolate, Handle<Context>(), Undefined(isolate)));
 }
 
 void* V8_Null(void* isolate_ptr) {
 	ISOLATE_SCOPE(static_cast<Isolate*>(isolate_ptr));
-	return (void*)(new V8_Value(isolate, Null(isolate)));
+	return (void*)(new V8_Value(isolate, Handle<Context>(), Null(isolate)));
 }
 
 void* V8_True(void* isolate_ptr) {
 	ISOLATE_SCOPE(static_cast<Isolate*>(isolate_ptr));
-	return (void*)(new V8_Value(isolate, True(isolate)));
+	return (void*)(new V8_Value(isolate, Handle<Context>(), True(isolate)));
 }
 
 void* V8_False(void* isolate_ptr) {
 	ISOLATE_SCOPE(static_cast<Isolate*>(isolate_ptr));
-	return (void*)(new V8_Value(isolate, False(isolate)));
+	return (void*)(new V8_Value(isolate, Handle<Context>(), False(isolate)));
+}
+
+/*
+object wrappers
+*/
+int V8_SetProperty(void* value, const char* key, int key_length, void* prop_value, int attribs) {
+	VALUE_TO_LOCAL(value, local_value);
+
+	Local<Context> context = Local<Context>::New(isolate, val->context);
+	Context::Scope context_scope(context);
+
+	return Local<Object>::Cast(local_value)->Set(
+		String::NewFromOneByte(isolate, (uint8_t*)key, String::kNormalString, key_length),
+		Local<Value>::New(isolate, static_cast<V8_Value*>(prop_value)->self),
+		(v8::PropertyAttribute)attribs
+	);
+}
+
+void* V8_GetProperty(void* value, const char* key, int key_length) {
+	VALUE_TO_LOCAL(value, local_value);
+
+	Local<Context> context = Local<Context>::New(isolate, val->context);
+	Context::Scope context_scope(context);
+
+	return (void*)(new V8_Value(isolate, context,
+		Local<Object>::Cast(local_value)->Get(
+			String::NewFromOneByte(isolate, (uint8_t*)key, String::kNormalString, key_length)
+		)
+	));
+}
+
+int V8_SetElement(void* value, uint32_t index, void* elem_value) {
+	VALUE_TO_LOCAL(value, local_value);
+
+	Local<Context> context = Local<Context>::New(isolate, val->context);
+	Context::Scope context_scope(context);
+
+	return Local<Object>::Cast(local_value)->Set(
+		index,
+		Local<Value>::New(isolate, static_cast<V8_Value*>(elem_value)->self)
+	);
+}
+
+void* V8_GetElement(void* value, uint32_t index) {
+	VALUE_TO_LOCAL(value, local_value);
+
+	Local<Context> context = Local<Context>::New(isolate, val->context);
+	Context::Scope context_scope(context);
+
+	return (void*)(new V8_Value(isolate, context,
+		Local<Object>::Cast(local_value)->Get(index)
+	));
+}
+
+int V8_ArrayLength(void* value) {
+	VALUE_TO_LOCAL(value, local_value);
+	return Local<Array>::Cast(local_value)->Length();
 }
 
 } // extern "C"

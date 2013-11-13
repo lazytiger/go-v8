@@ -137,9 +137,8 @@ type ScriptOrigin struct {
 }
 
 func (e *Engine) NewScriptOrigin(name string, lineOffset, columnOffset int) *ScriptOrigin {
-	cname := C.CString(name)
-	self := C.V8_NewScriptOrigin(e.self, cname, C.int(lineOffset), C.int(columnOffset))
-	C.free(unsafe.Pointer(cname))
+	namePtr := unsafe.Pointer((*reflect.StringHeader)(unsafe.Pointer(&name)).Data)
+	self := C.V8_NewScriptOrigin(e.self, (*C.char)(namePtr), C.int(len(name)), C.int(lineOffset), C.int(columnOffset))
 
 	if self == nil {
 		return nil

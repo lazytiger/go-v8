@@ -7,7 +7,10 @@ package v8
 import "C"
 import "unsafe"
 import "runtime"
+import "reflect"
 
+// The superclass of all JavaScript values and objects.
+//
 type Value struct {
 	self    unsafe.Pointer
 	isType  int
@@ -33,13 +36,6 @@ func newValue(self unsafe.Pointer) *Value {
 	return result
 }
 
-func (v *Value) ToString() string {
-	cstring := C.V8_ValueToString(v.self)
-	gostring := C.GoString(cstring)
-	C.free(unsafe.Pointer(cstring))
-	return gostring
-}
-
 func (v *Value) GetBoolean() bool {
 	return C.V8_ValueGetBoolean(v.self) == 1
 }
@@ -58,6 +54,68 @@ func (v *Value) GetUint32() uint32 {
 
 func (v *Value) GetInt32() int32 {
 	return int32(C.V8_ValueGetInt32(v.self))
+}
+
+func (v *Value) ToString() string {
+	cstring := C.V8_ValueToString(v.self)
+	gostring := C.GoString(cstring)
+	C.free(unsafe.Pointer(cstring))
+	return gostring
+}
+
+func (v *Value) ToObject() Object {
+	return Object{v}
+}
+
+func (v *Value) ToArray() Array {
+	return Array{Object{v}}
+}
+
+type PropertyAttribute int
+
+const (
+	PA_None       PropertyAttribute = 0
+	PA_ReadOnly                     = 1 << 0
+	PA_DontEnum                     = 1 << 1
+	PA_DontDelete                   = 1 << 2
+)
+
+// A JavaScript object (ECMA-262, 4.3.3)
+//
+type Object struct {
+	*Value
+}
+
+func (o Object) SetProperty(key string, value *Value, attribs PropertyAttribute) bool {
+	keyPtr := unsafe.Pointer((*reflect.StringHeader)(unsafe.Pointer(&key)).Data)
+	return C.V8_SetProperty(o.self,
+		(*C.char)(keyPtr), C.int(len(key)), value.self, C.int(attribs),
+	) == 1
+}
+
+func (o Object) GetProperty(key string) *Value {
+	keyPtr := unsafe.Pointer((*reflect.StringHeader)(unsafe.Pointer(&key)).Data)
+	return newValue(C.V8_GetProperty(
+		o.self, (*C.char)(keyPtr), C.int(len(key)),
+	))
+}
+
+func (o Object) SetElement(index uint32, value *Value) bool {
+	return C.V8_SetElement(o.self, C.uint32_t(index), value.self) == 1
+}
+
+func (o Object) GetElement(index uint32) *Value {
+	return newValue(C.V8_GetElement(o.self, C.uint32_t(index)))
+}
+
+// An instance of the built-in array constructor (ECMA-262, 15.4.2).
+//
+type Array struct {
+	Object
+}
+
+func (a Array) Length() int {
+	return int(C.V8_ArrayLength(a.self))
 }
 
 const (

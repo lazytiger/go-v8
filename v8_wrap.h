@@ -48,7 +48,7 @@ extern int V8_ScriptDataHasError(void* script_data);
 /*
 script origin wrappers
 */
-extern void* V8_NewScriptOrigin(void* isolate_ptr, const char* name, int line_offset, int column_offset);
+extern void* V8_NewScriptOrigin(void* isolate_ptr, const char* name, int name_length, int line_offset, int column_offset);
 
 extern void V8_DisposeScriptOrigin(void* script_origin);
 
@@ -117,6 +117,19 @@ extern void* V8_Null(void* isolate_ptr);
 extern void* V8_True(void* isolate_ptr);
 
 extern void* V8_False(void* isolate_ptr);
+
+/*
+object wrappers
+*/
+extern int V8_SetProperty(void* value, const char* key, int key_length, void* prop_value, int attribs);
+
+extern void* V8_GetProperty(void* value, const char* key, int key_length);
+
+extern int V8_SetElement(void* value, uint32_t index, void* elem_value);
+
+extern void* V8_GetElement(void* value, uint32_t index);
+
+extern int V8_ArrayLength(void* value);
 
 #ifdef __cplusplus
 } // extern "C"

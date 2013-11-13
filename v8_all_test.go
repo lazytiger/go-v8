@@ -66,12 +66,193 @@ func Test_HelloWorld(t *testing.T) {
 	script := context.Compile("'Hello ' + 'World!'", nil, nil)
 	value := script.Run(context)
 	result := value.ToString()
+
 	if result != "Hello World!" {
 		t.FailNow()
 	}
 
 	runtime.GC()
 	//println(result)
+}
+
+func Test_PreCompile(t *testing.T) {
+	code := "'Hello ' + 'PreCompile!'"
+	scriptData1 := Default.PreCompile(code)
+
+	data := scriptData1.Data()
+	scriptData2 := NewScriptData(data)
+
+	context := Default.NewContext()
+	script := context.Compile(code, nil, scriptData2)
+	value := script.Run(context)
+	result := value.ToString()
+
+	if result != "Hello PreCompile!" {
+		t.FailNow()
+	}
+
+	runtime.GC()
+	//println(result)
+}
+
+func Test_Object(t *testing.T) {
+	context := Default.NewContext()
+	script := context.Compile("a={'a':123};", nil, nil)
+	value := script.Run(context)
+	result := value.ToObject()
+
+	if prop := result.GetProperty("a"); prop != nil {
+		if !prop.IsNumber() || prop.GetNumber() != 123 {
+			t.FailNow()
+		}
+	} else {
+		t.FailNow()
+	}
+
+	if !result.SetProperty("a", Default.True(), PA_None) {
+		t.FailNow()
+	}
+
+	if prop := result.GetProperty("a"); prop != nil {
+		if !prop.IsBoolean() || !prop.IsTrue() {
+			t.FailNow()
+		}
+	} else {
+		t.FailNow()
+	}
+
+	if !result.SetProperty("b", Default.False(), PA_None) {
+		t.FailNow()
+	}
+
+	if prop := result.GetProperty("b"); prop != nil {
+		if !prop.IsBoolean() || !prop.IsFalse() {
+			t.FailNow()
+		}
+	} else {
+		t.FailNow()
+	}
+
+	if elem := result.GetElement(0); elem != nil {
+		if !elem.IsUndefined() {
+			t.FailNow()
+		}
+	} else {
+		t.FailNow()
+	}
+
+	if !result.SetElement(0, Default.True()) {
+		t.FailNow()
+	}
+
+	if elem := result.GetElement(0); elem != nil {
+		if !elem.IsTrue() {
+			t.FailNow()
+		}
+	} else {
+		t.FailNow()
+	}
+
+	runtime.GC()
+}
+
+func Test_Array(t *testing.T) {
+	context := Default.NewContext()
+	script := context.Compile("[1,2,3]", nil, nil)
+	value := script.Run(context)
+	result := value.ToArray()
+
+	if result.Length() != 3 {
+		t.FailNow()
+	}
+
+	if elem := result.GetElement(0); elem != nil {
+		if !elem.IsNumber() || elem.GetNumber() != 1 {
+			t.FailNow()
+		}
+	} else {
+		t.FailNow()
+	}
+
+	if elem := result.GetElement(1); elem != nil {
+		if !elem.IsNumber() || elem.GetNumber() != 2 {
+			t.FailNow()
+		}
+	} else {
+		t.FailNow()
+	}
+
+	if elem := result.GetElement(2); elem != nil {
+		if !elem.IsNumber() || elem.GetNumber() != 3 {
+			t.FailNow()
+		}
+	} else {
+		t.FailNow()
+	}
+
+	if !result.SetElement(0, Default.True()) {
+		t.FailNow()
+	}
+
+	if elem := result.GetElement(0); elem != nil {
+		if !elem.IsTrue() {
+			t.FailNow()
+		}
+	} else {
+		t.FailNow()
+	}
+
+	runtime.GC()
+}
+
+func Test_TypeCheck(t *testing.T) {
+	// TODO
+}
+
+func Test_SpecialValues(t *testing.T) {
+	if !Default.Undefined().IsUndefined() {
+		t.FailNow()
+	}
+
+	if !Default.Null().IsNull() {
+		t.FailNow()
+	}
+
+	if !Default.True().IsTrue() {
+		t.FailNow()
+	}
+
+	if !Default.False().IsFalse() {
+		t.FailNow()
+	}
+}
+
+func Test_UnderscoreJS(t *testing.T) {
+	// Need download underscore.js from:
+	// https://raw.github.com/jashkenas/underscore/master/underscore.js
+	code, err := ioutil.ReadFile("underscore.js")
+
+	if err != nil {
+		return
+	}
+
+	context := Default.NewContext()
+	script := context.Compile(string(code), nil, nil)
+	script.Run(context)
+
+	test := "_.find([1, 2, 3, 4, 5, 6], function(num){ return num % 2 == 0; });"
+	testScript := context.Compile(test, nil, nil)
+	value := testScript.Run(context)
+
+	if value == nil || value.IsNumber() == false {
+		t.FailNow()
+	}
+
+	result := value.GetNumber()
+
+	if result != 2 {
+		t.FailNow()
+	}
 }
 
 func Test_ThreadSafe1(t *testing.T) {
@@ -228,75 +409,6 @@ func Test_ThreadSafe5(t *testing.T) {
 	runtime.GC()
 
 	if fail {
-		t.FailNow()
-	}
-}
-
-func Test_PreCompile(t *testing.T) {
-	code := "'Hello ' + 'PreCompile!'"
-	scriptData1 := Default.PreCompile(code)
-
-	data := scriptData1.Data()
-	scriptData2 := NewScriptData(data)
-
-	context := Default.NewContext()
-	script := context.Compile(code, nil, scriptData2)
-	value := script.Run(context)
-	result := value.ToString()
-	if result != "Hello PreCompile!" {
-		t.FailNow()
-	}
-
-	runtime.GC()
-	//println(result)
-}
-
-func Test_TypeCheck(t *testing.T) {
-	// TODO
-}
-
-func Test_SpecialValues(t *testing.T) {
-	if !Default.Undefined().IsUndefined() {
-		t.FailNow()
-	}
-
-	if !Default.Null().IsNull() {
-		t.FailNow()
-	}
-
-	if !Default.True().IsTrue() {
-		t.FailNow()
-	}
-
-	if !Default.False().IsFalse() {
-		t.FailNow()
-	}
-}
-
-func Test_UnderscoreJS(t *testing.T) {
-	// Need download underscore.js from:
-	// https://raw.github.com/jashkenas/underscore/master/underscore.js
-	code, err := ioutil.ReadFile("underscore.js")
-
-	if err != nil {
-		return
-	}
-
-	context := Default.NewContext()
-	script := context.Compile(string(code), nil, nil)
-	script.Run(context)
-
-	test := "_.find([1, 2, 3, 4, 5, 6], function(num){ return num % 2 == 0; });"
-	testScript := context.Compile(test, nil, nil)
-	value := testScript.Run(context)
-
-	if value == nil || value.IsNumber() == false {
-		t.FailNow()
-	}
-
-	result := value.GetNumber()
-
-	if result != 2 {
 		t.FailNow()
 	}
 }
