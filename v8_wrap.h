@@ -131,6 +131,18 @@ extern void* V8_GetElement(void* value, uint32_t index);
 
 extern int V8_GetPropertyAttributes(void *value, const char* key, int key_length);
 
+extern int V8_ForceSetProperty(void* value, const char* key, int key_length, void* prop_value, int attribs);
+
+extern int V8_HasProperty(void *value, const char* key, int key_length);
+
+extern int V8_DeleteProperty(void *value, const char* key, int key_length);
+
+extern int V8_ForceDeleteProperty(void *value, const char* key, int key_length);
+
+extern int V8_HasElement(void* value, uint32_t index);
+
+extern int V8_DeleteElement(void* value, uint32_t index);
+
 extern int V8_ArrayLength(void* value);
 
 #ifdef __cplusplus

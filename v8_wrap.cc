@@ -84,6 +84,13 @@ public:
 	ISOLATE_SCOPE(val->GetIsolate()); \
 	Local<Value> local_value = Local<Value>::New(isolate, val->self)
 
+#define VALUE_SCOPE(value, local_value) \
+	V8_Value* val = static_cast<V8_Value*>(value); \
+	ISOLATE_SCOPE(val->GetIsolate()); \
+	Local<Context> context = Local<Context>::New(isolate, val->context); \
+	Context::Scope context_scope(context); \
+	Local<Value> local_value = Local<Value>::New(isolate, val->self) \
+
 /*
 isolate wrappers
 */
@@ -370,10 +377,7 @@ void* V8_False(void* isolate_ptr) {
 object wrappers
 */
 int V8_SetProperty(void* value, const char* key, int key_length, void* prop_value, int attribs) {
-	VALUE_TO_LOCAL(value, local_value);
-
-	Local<Context> context = Local<Context>::New(isolate, val->context);
-	Context::Scope context_scope(context);
+	VALUE_SCOPE(value, local_value);
 
 	return Local<Object>::Cast(local_value)->Set(
 		String::NewFromOneByte(isolate, (uint8_t*)key, String::kNormalString, key_length),
@@ -383,10 +387,7 @@ int V8_SetProperty(void* value, const char* key, int key_length, void* prop_valu
 }
 
 void* V8_GetProperty(void* value, const char* key, int key_length) {
-	VALUE_TO_LOCAL(value, local_value);
-
-	Local<Context> context = Local<Context>::New(isolate, val->context);
-	Context::Scope context_scope(context);
+	VALUE_SCOPE(value, local_value);
 
 	return (void*)(new V8_Value(isolate, context,
 		Local<Object>::Cast(local_value)->Get(
@@ -396,10 +397,7 @@ void* V8_GetProperty(void* value, const char* key, int key_length) {
 }
 
 int V8_SetElement(void* value, uint32_t index, void* elem_value) {
-	VALUE_TO_LOCAL(value, local_value);
-
-	Local<Context> context = Local<Context>::New(isolate, val->context);
-	Context::Scope context_scope(context);
+	VALUE_SCOPE(value, local_value);
 
 	return Local<Object>::Cast(local_value)->Set(
 		index,
@@ -408,10 +406,7 @@ int V8_SetElement(void* value, uint32_t index, void* elem_value) {
 }
 
 void* V8_GetElement(void* value, uint32_t index) {
-	VALUE_TO_LOCAL(value, local_value);
-
-	Local<Context> context = Local<Context>::New(isolate, val->context);
-	Context::Scope context_scope(context);
+	VALUE_SCOPE(value, local_value);
 
 	return (void*)(new V8_Value(isolate, context,
 		Local<Object>::Cast(local_value)->Get(index)
@@ -419,18 +414,62 @@ void* V8_GetElement(void* value, uint32_t index) {
 }
 
 int V8_GetPropertyAttributes(void *value, const char* key, int key_length) {
-	VALUE_TO_LOCAL(value, local_value);
-
-	Local<Context> context = Local<Context>::New(isolate, val->context);
-	Context::Scope context_scope(context);
+	VALUE_SCOPE(value, local_value);
 
 	return Local<Object>::Cast(local_value)->GetPropertyAttributes(
 		String::NewFromOneByte(isolate, (uint8_t*)key, String::kNormalString, key_length)
 	);
 }
 
+int V8_ForceSetProperty(void* value, const char* key, int key_length, void* prop_value, int attribs) {
+	VALUE_SCOPE(value, local_value);
+
+	return Local<Object>::Cast(local_value)->ForceSet(
+		String::NewFromOneByte(isolate, (uint8_t*)key, String::kNormalString, key_length),
+		Local<Value>::New(isolate, static_cast<V8_Value*>(prop_value)->self),
+		(v8::PropertyAttribute)attribs
+	);
+}
+
+int V8_HasProperty(void *value, const char* key, int key_length) {
+	VALUE_SCOPE(value, local_value);
+
+	return Local<Object>::Cast(local_value)->Has(
+		String::NewFromOneByte(isolate, (uint8_t*)key, String::kNormalString, key_length)
+	);
+}
+
+int V8_DeleteProperty(void *value, const char* key, int key_length) {
+	VALUE_SCOPE(value, local_value);
+
+	return Local<Object>::Cast(local_value)->Delete(
+		String::NewFromOneByte(isolate, (uint8_t*)key, String::kNormalString, key_length)
+	);
+}
+
+int V8_ForceDeleteProperty(void *value, const char* key, int key_length) {
+	VALUE_SCOPE(value, local_value);
+
+	return Local<Object>::Cast(local_value)->ForceDelete(
+		String::NewFromOneByte(isolate, (uint8_t*)key, String::kNormalString, key_length)
+	);
+}
+
+int V8_HasElement(void* value, uint32_t index) {
+	VALUE_SCOPE(value, local_value);
+
+	return Local<Object>::Cast(local_value)->Has(index);
+}
+
+int V8_DeleteElement(void* value, uint32_t index) {
+	VALUE_SCOPE(value, local_value);
+
+	return Local<Object>::Cast(local_value)->Delete(index);
+}
+
 int V8_ArrayLength(void* value) {
 	VALUE_TO_LOCAL(value, local_value);
+	
 	return Local<Array>::Cast(local_value)->Length();
 }
 

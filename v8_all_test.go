@@ -136,6 +136,7 @@ func Test_Object(t *testing.T) {
 	value := script.Run(context)
 	object := value.ToObject()
 
+	// Test get/set property
 	if prop := object.GetProperty("a"); prop != nil {
 		if !prop.IsUndefined() {
 			t.Fatal("property 'a' value not match")
@@ -156,6 +157,7 @@ func Test_Object(t *testing.T) {
 		t.Fatal("could't get property 'b'")
 	}
 
+	// Test get/set non-ascii property
 	if !object.SetProperty("中文字段", Default.False(), PA_None) {
 		t.Fatal("could't set non-ascii property")
 	}
@@ -168,6 +170,7 @@ func Test_Object(t *testing.T) {
 		t.Fatal("could't get non-ascii property")
 	}
 
+	// Test get/set element
 	if elem := object.GetElement(0); elem != nil {
 		if !elem.IsUndefined() {
 			t.Fatal("element 0 value not match")
@@ -188,14 +191,71 @@ func Test_Object(t *testing.T) {
 		t.Fatal("could't get element 0")
 	}
 
+	// Test GetPropertyAttributes
 	if !object.SetProperty("x", Default.True(), PA_DontDelete|PA_ReadOnly) {
 		t.Fatal("could't set property with attributes")
 	}
 
 	attris := object.GetPropertyAttributes("x")
 
-	if attris&(PA_DontDelete|PA_DontDelete) != PA_DontDelete|PA_DontDelete {
+	if attris&(PA_DontDelete|PA_ReadOnly) != PA_DontDelete|PA_ReadOnly {
 		t.Fatal("property attributes not match")
+	}
+
+	// Test ForceSetProperty
+	if !object.ForceSetProperty("x", Default.False(), PA_None) {
+		t.Fatal("could't force set property 'x'")
+	}
+
+	if prop := object.GetProperty("x"); prop != nil {
+		if !prop.IsBoolean() || !prop.IsFalse() {
+			t.Fatal("property 'x' value not match")
+		}
+	} else {
+		t.Fatal("could't get property 'x'")
+	}
+
+	// Test HasProperty and DeleteProperty
+	if object.HasProperty("a") {
+		t.Fatal("property 'a' exists")
+	}
+
+	if !object.HasProperty("b") {
+		t.Fatal("property 'b' not exists")
+	}
+
+	if !object.DeleteProperty("b") {
+		t.Fatal("could't delete property 'b'")
+	}
+
+	if object.HasProperty("b") {
+		t.Fatal("delete property 'b' failed")
+	}
+
+	// Test ForceDeleteProperty
+	if !object.ForceDeleteProperty("x") {
+		t.Fatal("could't delete property 'x'")
+	}
+
+	if object.HasProperty("x") {
+		t.Fatal("delete property 'x' failed")
+	}
+
+	// Test HasElement and DeleteElement
+	if object.HasElement(1) {
+		t.Fatal("element 1 exists")
+	}
+
+	if !object.HasElement(0) {
+		t.Fatal("element 0 not exists")
+	}
+
+	if !object.DeleteElement(0) {
+		t.Fatal("could't delete element 0")
+	}
+
+	if object.HasElement(0) {
+		t.Fatal("delete element 0 failed")
 	}
 
 	runtime.GC()
