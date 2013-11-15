@@ -36,6 +36,60 @@ func newValue(self unsafe.Pointer) *Value {
 	return result
 }
 
+func (e *Engine) Undefined() *Value {
+	if e._undefined == nil {
+		e._undefined = newValue(C.V8_Undefined(e.self))
+	}
+	return e._undefined
+}
+
+func (e *Engine) Null() *Value {
+	if e._null == nil {
+		e._null = newValue(C.V8_Null(e.self))
+	}
+	return e._null
+}
+
+func (e *Engine) True() *Value {
+	if e._true == nil {
+		e._true = newValue(C.V8_True(e.self))
+	}
+	return e._true
+}
+
+func (e *Engine) False() *Value {
+	if e._false == nil {
+		e._false = newValue(C.V8_False(e.self))
+	}
+	return e._false
+}
+
+func (e *Engine) NewBoolean(value bool) *Value {
+	if value {
+		return e.True()
+	}
+	return e.False()
+}
+
+func (e *Engine) NewNumber(value float64) *Value {
+	return newValue(C.V8_NewNumber(
+		e.self, C.double(value),
+	))
+}
+
+func (e *Engine) NewInteger(value int64) *Value {
+	return newValue(C.V8_NewNumber(
+		e.self, C.double(value),
+	))
+}
+
+func (e *Engine) NewString(value string) *Value {
+	valPtr := unsafe.Pointer((*reflect.StringHeader)(unsafe.Pointer(&value)).Data)
+	return newValue(C.V8_NewString(
+		e.self, (*C.char)(valPtr), C.int(len(value)),
+	))
+}
+
 func (v *Value) ToBoolean() bool {
 	return C.V8_ValueToBoolean(v.self) == 1
 }
@@ -63,12 +117,25 @@ func (v *Value) ToString() string {
 	return gostring
 }
 
-func (v *Value) ToObject() Object {
-	return Object{v}
+func (v *Value) ToObject() *Object {
+	if v == nil {
+		return nil
+	}
+	return &Object{v}
 }
 
-func (v *Value) ToArray() Array {
-	return Array{Object{v}}
+func (v *Value) ToArray() *Array {
+	if v == nil {
+		return nil
+	}
+	return &Array{&Object{v}}
+}
+
+func (v *Value) ToRegExp() *RegExp {
+	if v == nil {
+		return nil
+	}
+	return &RegExp{&Object{v}}
 }
 
 const (
@@ -223,110 +290,4 @@ func (v *Value) IsRegExp() bool {
 	return v.checkJsType(isRegExp, func(self unsafe.Pointer) bool {
 		return C.V8_ValueIsRegExp(self) == 1
 	})
-}
-
-type PropertyAttribute int
-
-const (
-	PA_None       PropertyAttribute = 0
-	PA_ReadOnly                     = 1 << 0
-	PA_DontEnum                     = 1 << 1
-	PA_DontDelete                   = 1 << 2
-)
-
-// A JavaScript object (ECMA-262, 4.3.3)
-//
-type Object struct {
-	*Value
-}
-
-func (o Object) SetProperty(key string, value *Value, attribs PropertyAttribute) bool {
-	keyPtr := unsafe.Pointer((*reflect.StringHeader)(unsafe.Pointer(&key)).Data)
-	return C.V8_SetProperty(
-		o.self, (*C.char)(keyPtr), C.int(len(key)), value.self, C.int(attribs),
-	) == 1
-}
-
-func (o Object) GetProperty(key string) *Value {
-	keyPtr := unsafe.Pointer((*reflect.StringHeader)(unsafe.Pointer(&key)).Data)
-	return newValue(C.V8_GetProperty(
-		o.self, (*C.char)(keyPtr), C.int(len(key)),
-	))
-}
-
-func (o Object) SetElement(index int, value *Value) bool {
-	return C.V8_SetElement(
-		o.self, C.uint32_t(index), value.self,
-	) == 1
-}
-
-func (o Object) GetElement(index int) *Value {
-	return newValue(C.V8_GetElement(o.self, C.uint32_t(index)))
-}
-
-func (o Object) GetPropertyAttributes(key string) PropertyAttribute {
-	keyPtr := unsafe.Pointer((*reflect.StringHeader)(unsafe.Pointer(&key)).Data)
-	return PropertyAttribute(C.V8_GetPropertyAttributes(
-		o.self, (*C.char)(keyPtr), C.int(len(key)),
-	))
-}
-
-// Sets a local property on this object bypassing interceptors and
-// overriding accessors or read-only properties.
-//
-// Note that if the object has an interceptor the property will be set
-// locally, but since the interceptor takes precedence the local property
-// will only be returned if the interceptor doesn't return a value.
-//
-// Note also that this only works for named properties.
-func (o Object) ForceSetProperty(key string, value *Value, attribs PropertyAttribute) bool {
-	keyPtr := unsafe.Pointer((*reflect.StringHeader)(unsafe.Pointer(&key)).Data)
-	return C.V8_ForceSetProperty(o.self,
-		(*C.char)(keyPtr), C.int(len(key)), value.self, C.int(attribs),
-	) == 1
-}
-
-func (o Object) HasProperty(key string) bool {
-	keyPtr := unsafe.Pointer((*reflect.StringHeader)(unsafe.Pointer(&key)).Data)
-	return C.V8_HasProperty(
-		o.self, (*C.char)(keyPtr), C.int(len(key)),
-	) == 1
-}
-
-func (o Object) DeleteProperty(key string) bool {
-	keyPtr := unsafe.Pointer((*reflect.StringHeader)(unsafe.Pointer(&key)).Data)
-	return C.V8_DeleteProperty(
-		o.self, (*C.char)(keyPtr), C.int(len(key)),
-	) == 1
-}
-
-// Delete a property on this object bypassing interceptors and
-// ignoring dont-delete attributes.
-func (o Object) ForceDeleteProperty(key string) bool {
-	keyPtr := unsafe.Pointer((*reflect.StringHeader)(unsafe.Pointer(&key)).Data)
-	return C.V8_ForceDeleteProperty(
-		o.self, (*C.char)(keyPtr), C.int(len(key)),
-	) == 1
-}
-
-func (o Object) HasElement(index int) bool {
-	return C.V8_HasElement(
-		o.self, C.uint32_t(index),
-	) == 1
-}
-
-func (o Object) DeleteElement(index int) bool {
-	return C.V8_DeleteElement(
-		o.self, C.uint32_t(index),
-	) == 1
-}
-
-// An instance of the built-in array constructor (ECMA-262, 15.4.2).
-//
-type Array struct {
-	Object
-}
-
-func (a Array) Length() int {
-	return int(C.V8_ArrayLength(a.self))
 }

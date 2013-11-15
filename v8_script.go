@@ -15,6 +15,52 @@ type Script struct {
 	self unsafe.Pointer
 }
 
+// Pre-compiles the specified script (context-independent).
+//
+func (e *Engine) PreCompile(code []byte) *ScriptData {
+	codePtr := unsafe.Pointer((*reflect.StringHeader)(unsafe.Pointer(&code)).Data)
+	return newScriptData(C.V8_PreCompile(
+		e.self, (*C.char)(codePtr), C.int(len(code)),
+	))
+}
+
+// Compiles the specified script (context-independent).
+// 'data' is the Pre-parsing data, as obtained by PreCompile()
+// using pre_data speeds compilation if it's done multiple times.
+//
+func (e *Engine) Compile(code []byte, origin *ScriptOrigin, data *ScriptData) *Script {
+	var originPtr unsafe.Pointer
+	var dataPtr unsafe.Pointer
+
+	if origin != nil {
+		originPtr = origin.self
+	}
+
+	if data != nil {
+		dataPtr = data.self
+	}
+
+	codePtr := unsafe.Pointer((*reflect.StringHeader)(unsafe.Pointer(&code)).Data)
+	self := C.V8_Compile(e.self, (*C.char)(codePtr), C.int(len(code)), originPtr, dataPtr)
+
+	if self == nil {
+		return nil
+	}
+
+	result := &Script{
+		self: self,
+	}
+
+	runtime.SetFinalizer(result, func(s *Script) {
+		if traceDispose {
+			println("v8.Script.Dispose()")
+		}
+		C.V8_DisposeScript(s.self)
+	})
+
+	return result
+}
+
 // Runs the script returning the resulting value.
 //
 func (s Script) Run(c *Context) *Value {

@@ -165,6 +165,18 @@ func Test_Values(t *testing.T) {
 		t.Fatal(`NewString("Hello World!").ToString() != "Hello World!"`)
 	}
 
+	if Default.NewObject().IsObject() == false {
+		t.Fatal(`NewObject().IsObject() == false`)
+	}
+
+	if Default.NewArray(5).IsArray() == false {
+		t.Fatal(`NewArray(5).IsArray() == false`)
+	}
+
+	if Default.NewRegExp("foo", RF_None).IsRegExp() == false {
+		t.Fatal(`NewRegExp("foo", RF_None).IsRegExp() == false`)
+	}
+
 	runtime.GC()
 }
 

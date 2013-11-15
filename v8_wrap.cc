@@ -10,7 +10,12 @@ class V8_Context {
 public:
 	V8_Context(Isolate* isolate, Handle<Context> context) {
 		isolate_ = isolate;
-		self.Reset(isolate, context);
+		self.Reset(isolate_, context);
+	}
+
+	V8_Context(V8_Context* engine, Handle<Context> context) {
+		isolate_ = engine->GetIsolate();
+		self.Reset(isolate_, context);
 	}
 
 	~V8_Context() {
@@ -31,52 +36,48 @@ public:
 
 class V8_Script {
 public:
-	V8_Script(Isolate* isolate, Handle<Script> script) {
-		isolate_ = isolate;
-		self.Reset(isolate, script);
+	V8_Script(V8_Context* ownerEngine, Handle<Script> script) {
+		engine = ownerEngine;
+		self.Reset(engine->GetIsolate(), script);
 	}
 
 	~V8_Script() {
-		Locker locker(isolate_);
-		Isolate::Scope isolate_scope(isolate_);
+		Locker locker(GetIsolate());
+		Isolate::Scope isolate_scope(GetIsolate());
 
 		self.Dispose();
 		self.Reset();
 	}
 
 	Isolate* GetIsolate() {
-		return isolate_;
+		return engine->GetIsolate();
 	}
 
-	Isolate* isolate_;
+	V8_Context* engine;
 	Persistent<Script> self;
 };
 
 class V8_Value {
 public:
-	V8_Value(Isolate* isolate, Handle<Context> context_handle, Handle<Value> value) {
-		isolate_ = isolate;
-		self.Reset(isolate, value);
-		context.Reset(isolate, context_handle);
+	V8_Value(V8_Context* ownerEngine, Handle<Value> value) {
+		engine = ownerEngine;
+		self.Reset(engine->GetIsolate(), value);
 	}
 
 	~V8_Value() {
-		Locker locker(isolate_);
-		Isolate::Scope isolate_scope(isolate_);
+		Locker locker(GetIsolate());
+		Isolate::Scope isolate_scope(GetIsolate());
 
 		self.Dispose();
 		self.Reset();
-		context.Dispose();
-		context.Reset();
 	}
 
 	Isolate* GetIsolate() {
-		return isolate_;
+		return engine->GetIsolate();
 	}
 
-	Isolate* isolate_;
+	V8_Context* engine;
 	Persistent<Value> self;
-	Persistent<Context> context;
 };
 
 #define ISOLATE_SCOPE(isolate_ptr) \
@@ -85,17 +86,18 @@ public:
 	Isolate::Scope isolate_scope(isolate); \
 	HandleScope handle_scope(isolate) \
 
-#define VALUE_TO_LOCAL(value, local_value) \
-	V8_Value* val = static_cast<V8_Value*>(value); \
-	ISOLATE_SCOPE(val->GetIsolate()); \
-	Local<Value> local_value = Local<Value>::New(isolate, val->self)
+#define ENGINE_SCOPE(engine) \
+	V8_Context* the_engine = static_cast<V8_Context*>(engine); \
+	ISOLATE_SCOPE(the_engine->GetIsolate()); \
+	Local<Context> local_context = Local<Context>::New(isolate, the_engine->self); \
+	Context::Scope context_scope(local_context) \
 
-#define VALUE_SCOPE(value, local_value) \
-	V8_Value* val = static_cast<V8_Value*>(value); \
-	ISOLATE_SCOPE(val->GetIsolate()); \
-	Local<Context> context = Local<Context>::New(isolate, val->context); \
+#define VALUE_SCOPE(value) \
+	V8_Value* the_value = static_cast<V8_Value*>(value); \
+	ISOLATE_SCOPE(the_value->GetIsolate()); \
+	Local<Context> context = Local<Context>::New(isolate, the_value->engine->self); \
 	Context::Scope context_scope(context); \
-	Local<Value> local_value = Local<Value>::New(isolate, val->self) \
+	Local<Value> local_value = Local<Value>::New(isolate, the_value->self) \
 
 /*
 isolate wrappers
@@ -112,9 +114,9 @@ void* V8_NewEngine() {
 }
 
 void V8_DisposeEngine(void* engine) {
-	V8_Context* ctx = static_cast<V8_Context*>(engine);
-	Isolate* isolate = ctx->GetIsolate();
-	delete ctx;
+	V8_Context* the_engine = static_cast<V8_Context*>(engine);
+	Isolate* isolate = the_engine->GetIsolate();
+	delete the_engine;
 	isolate->Dispose();
 }
 
@@ -122,16 +124,16 @@ void V8_DisposeEngine(void* engine) {
 context wrappers
 */
 void* V8_NewContext(void* engine) {
-	V8_Context* ctx = static_cast<V8_Context*>(engine);
+	V8_Context* the_engine = static_cast<V8_Context*>(engine);
 
-	ISOLATE_SCOPE(ctx->GetIsolate());
+	ISOLATE_SCOPE(the_engine->GetIsolate());
 	
 	Handle<Context> context = Context::New(isolate);
 
 	if (context.IsEmpty())
 		return NULL;
 
-	return (void*)(new V8_Context(isolate, context));
+	return (void*)(new V8_Context(the_engine, context));
 }
 
 void V8_DisposeContext(void* context) {
@@ -142,13 +144,7 @@ void V8_DisposeContext(void* context) {
 script wrappers
 */
 void* V8_Compile(void* engine, const char* code, int length, void* script_origin,void* script_data) {
-	V8_Context* ctx = static_cast<V8_Context*>(engine);
-
-	ISOLATE_SCOPE(ctx->GetIsolate());
-
-	Local<Context> local_context = Local<Context>::New(isolate, ctx->self);
-
-	Context::Scope context_scope(local_context);
+	ENGINE_SCOPE(engine);
 
 	Handle<Script> script = Script::New(
 		String::NewFromOneByte(isolate, (uint8_t*)code, String::kNormalString, length), 
@@ -160,7 +156,7 @@ void* V8_Compile(void* engine, const char* code, int length, void* script_origin
 	if (script.IsEmpty())
 		return NULL;
 
-	return (void*)(new V8_Script(isolate, script));
+	return (void*)(new V8_Script(the_engine, script));
 }
 
 void V8_DisposeScript(void* script) {
@@ -169,29 +165,27 @@ void V8_DisposeScript(void* script) {
 
 void* V8_RunScript(void* context, void* script) {
 	V8_Context* ctx = static_cast<V8_Context*>(context);
-	V8_Script* spt = static_cast<V8_Script*>(script);
-
 	ISOLATE_SCOPE(ctx->GetIsolate());
-
 	Local<Context> local_context = Local<Context>::New(isolate, ctx->self);
-	Local<Script> local_script = Local<Script>::New(isolate, spt->self);
-
 	Context::Scope context_scope(local_context);
+
+	V8_Script* spt = static_cast<V8_Script*>(script);
+	Local<Script> local_script = Local<Script>::New(isolate, spt->self);
 	
 	Handle<Value> result = local_script->Run();
 
 	if (result.IsEmpty())
 		return NULL;
 
-	return (void*)(new V8_Value(isolate, local_context, result));
+	return (void*)(new V8_Value(spt->engine, result));
 }
 
 /*
 script data wrappers
 */
 void* V8_PreCompile(void* engine, const char* code, int length) {
-	V8_Context* ctx = static_cast<V8_Context*>(engine);
-	ISOLATE_SCOPE(ctx->GetIsolate());
+	V8_Context* the_engine = static_cast<V8_Context*>(engine);
+	ISOLATE_SCOPE(the_engine->GetIsolate());
 
 	return (void*)ScriptData::PreCompile(
 		String::NewFromOneByte(isolate, (uint8_t*)code, String::kNormalString, length)
@@ -222,8 +216,8 @@ int V8_ScriptDataHasError(void* script_data) {
 script origin wrappers
 */
 void* V8_NewScriptOrigin(void* engine, const char* name, int name_length, int line_offset, int column_offset) {
-	V8_Context* ctx = static_cast<V8_Context*>(engine);
-	ISOLATE_SCOPE(ctx->GetIsolate());
+	V8_Context* the_engine = static_cast<V8_Context*>(engine);
+	ISOLATE_SCOPE(the_engine->GetIsolate());
 
 	return (void*)(new ScriptOrigin(
 		String::NewFromOneByte(isolate, (uint8_t*)name, String::kNormalString, name_length),
@@ -244,7 +238,7 @@ void V8_DisposeValue(void* value) {
 }
 
 char* V8_ValueToString(void* value) {
-	VALUE_TO_LOCAL(value, local_value);
+	VALUE_SCOPE(value);
 
 	Handle<String> string = local_value->ToString();
 	uint8_t* str = (uint8_t*)malloc(string->Length() + 1);
@@ -253,97 +247,97 @@ char* V8_ValueToString(void* value) {
 }
 
 int V8_ValueIsUndefined(void* value) {
-	VALUE_TO_LOCAL(value, local_value);
+	VALUE_SCOPE(value);
 	return local_value->IsUndefined();
 }
 
 int V8_ValueIsNull(void* value) {
-	VALUE_TO_LOCAL(value, local_value);
+	VALUE_SCOPE(value);
 	return local_value->IsNull();
 }
 
 int V8_ValueIsTrue(void* value) {
-	VALUE_TO_LOCAL(value, local_value);
+	VALUE_SCOPE(value);
 	return local_value->IsTrue();
 }
 
 int V8_ValueIsFalse(void* value) {
-	VALUE_TO_LOCAL(value, local_value);
+	VALUE_SCOPE(value);
 	return local_value->IsFalse();
 }
 
 int V8_ValueIsString(void* value) {
-	VALUE_TO_LOCAL(value, local_value);
+	VALUE_SCOPE(value);
 	return local_value->IsString();
 }
 
 int V8_ValueIsFunction(void* value) {
-	VALUE_TO_LOCAL(value, local_value);
+	VALUE_SCOPE(value);
 	return local_value->IsFunction();
 }
 
 int V8_ValueIsArray(void* value) {
-	VALUE_TO_LOCAL(value, local_value);
+	VALUE_SCOPE(value);
 	return local_value->IsArray();
 }
 
 int V8_ValueIsObject(void* value) {
-	VALUE_TO_LOCAL(value, local_value);
+	VALUE_SCOPE(value);
 	return local_value->IsObject();
 }
 
 int V8_ValueIsBoolean(void* value) {
-	VALUE_TO_LOCAL(value, local_value);
+	VALUE_SCOPE(value);
 	return local_value->IsBoolean();
 }
 
 int V8_ValueIsNumber(void* value) {
-	VALUE_TO_LOCAL(value, local_value);
+	VALUE_SCOPE(value);
 	return local_value->IsNumber();
 }
 
 int V8_ValueIsExternal(void* value) {
-	VALUE_TO_LOCAL(value, local_value);
+	VALUE_SCOPE(value);
 	return local_value->IsExternal();
 }
 
 int V8_ValueIsInt32(void* value) {
-	VALUE_TO_LOCAL(value, local_value);
+	VALUE_SCOPE(value);
 	return local_value->IsInt32();
 }
 
 int V8_ValueIsUint32(void* value) {
-	VALUE_TO_LOCAL(value, local_value);
+	VALUE_SCOPE(value);
 	return local_value->IsUint32();
 }
 
 int V8_ValueIsDate(void* value) {
-	VALUE_TO_LOCAL(value, local_value);
+	VALUE_SCOPE(value);
 	return local_value->IsDate();
 }
 
 int V8_ValueIsBooleanObject(void* value) {
-	VALUE_TO_LOCAL(value, local_value);
+	VALUE_SCOPE(value);
 	return local_value->IsBooleanObject();
 }
 
 int V8_ValueIsNumberObject(void* value) {
-	VALUE_TO_LOCAL(value, local_value);
+	VALUE_SCOPE(value);
 	return local_value->IsNumberObject();
 }
 
 int V8_ValueIsStringObject(void* value) {
-	VALUE_TO_LOCAL(value, local_value);
+	VALUE_SCOPE(value);
 	return local_value->IsStringObject();
 }
 
 int V8_ValueIsNativeError(void* value) {
-	VALUE_TO_LOCAL(value, local_value);
+	VALUE_SCOPE(value);
 	return local_value->IsNativeError();
 }
 
 int V8_ValueIsRegExp(void* value) {
-	VALUE_TO_LOCAL(value, local_value);
+	VALUE_SCOPE(value);
 	return local_value->IsRegExp();
 }
 
@@ -351,70 +345,66 @@ int V8_ValueIsRegExp(void* value) {
 special values
 */
 void* V8_Undefined(void* engine) {
-	V8_Context* ctx = static_cast<V8_Context*>(engine);
-	ISOLATE_SCOPE(ctx->GetIsolate());
-	return (void*)(new V8_Value(isolate, Handle<Context>(), Undefined(isolate)));
+	V8_Context* the_engine = static_cast<V8_Context*>(engine);
+	ISOLATE_SCOPE(the_engine->GetIsolate());
+	return (void*)(new V8_Value(the_engine, Undefined(isolate)));
 }
 
 void* V8_Null(void* engine) {
-	V8_Context* ctx = static_cast<V8_Context*>(engine);
-	ISOLATE_SCOPE(ctx->GetIsolate());
-	return (void*)(new V8_Value(isolate, Handle<Context>(), Null(isolate)));
+	V8_Context* the_engine = static_cast<V8_Context*>(engine);
+	ISOLATE_SCOPE(the_engine->GetIsolate());
+	return (void*)(new V8_Value(the_engine, Null(isolate)));
 }
 
 void* V8_True(void* engine) {
-	V8_Context* ctx = static_cast<V8_Context*>(engine);
-	ISOLATE_SCOPE(ctx->GetIsolate());
-	return (void*)(new V8_Value(isolate, Handle<Context>(), True(isolate)));
+	V8_Context* the_engine = static_cast<V8_Context*>(engine);
+	ISOLATE_SCOPE(the_engine->GetIsolate());
+	return (void*)(new V8_Value(the_engine, True(isolate)));
 }
 
 void* V8_False(void* engine) {
-	V8_Context* ctx = static_cast<V8_Context*>(engine);
-	ISOLATE_SCOPE(ctx->GetIsolate());
-	return (void*)(new V8_Value(isolate, Handle<Context>(), False(isolate)));
+	V8_Context* the_engine = static_cast<V8_Context*>(engine);
+	ISOLATE_SCOPE(the_engine->GetIsolate());
+	return (void*)(new V8_Value(the_engine, False(isolate)));
 }
 
 int V8_ValueToBoolean(void* value) {
-	VALUE_TO_LOCAL(value, local_value);
+	VALUE_SCOPE(value);
 	return local_value->BooleanValue();
 }
   
 double V8_ValueToNumber(void* value) {
-	VALUE_TO_LOCAL(value, local_value);
+	VALUE_SCOPE(value);
 	return local_value->NumberValue();
 }
 
 int64_t V8_ValueToInteger(void* value) {
-	VALUE_TO_LOCAL(value, local_value);
+	VALUE_SCOPE(value);
 	return local_value->IntegerValue();
 }
 
 uint32_t V8_ValueToUint32(void* value) {
-	VALUE_TO_LOCAL(value, local_value);
+	VALUE_SCOPE(value);
 	return local_value->Uint32Value();
 }
 
 int32_t V8_ValueToInt32(void* value) {
-	VALUE_TO_LOCAL(value, local_value);
+	VALUE_SCOPE(value);
 	return local_value->Int32Value();
 }
 
-void* V8_NewNumber(void* context, double val) {
-	V8_Context* ctx = static_cast<V8_Context*>(context);
-	ISOLATE_SCOPE(ctx->GetIsolate());
-	Local<Context> local_context = Local<Context>::New(isolate, ctx->self);
+void* V8_NewNumber(void* engine, double val) {
+	ENGINE_SCOPE(engine);
 	
-	return (void*)(new V8_Value(isolate, local_context, 
+	return (void*)(new V8_Value(the_engine, 
 		Number::New(isolate, val)
 	));
 }
 
-void* V8_NewString(void* context, const char* val, int val_length) {
-	V8_Context* ctx = static_cast<V8_Context*>(context);
-	ISOLATE_SCOPE(ctx->GetIsolate());
-	Local<Context> local_context = Local<Context>::New(isolate, ctx->self);
+void* V8_NewString(void* engine, const char* val, int val_length) {
+	ENGINE_SCOPE(engine);
 	
-	return (void*)(new V8_Value(isolate, local_context, 
+	return (void*)(new V8_Value(the_engine, 
 		String::NewFromOneByte(isolate, (uint8_t*)val, String::kNormalString, val_length)
 	));
 }
@@ -422,9 +412,33 @@ void* V8_NewString(void* context, const char* val, int val_length) {
 /*
 object wrappers
 */
+void* V8_NewObject(void* engine) {
+	ENGINE_SCOPE(engine);
+
+	return (void*)(new V8_Value(the_engine, 
+		Object::New()
+	));
+}
+
+void* V8_NewArray(void* engine, int length) {
+	ENGINE_SCOPE(engine);
+
+	return (void*)(new V8_Value(the_engine, 
+		Array::New(length)
+	));
+}
+
+void* V8_NewRegExp(void* engine, const char* pattern, int length, int flags) {
+	ENGINE_SCOPE(engine);
+
+	return (void*)(new V8_Value(the_engine, RegExp::New(
+		String::NewFromOneByte(isolate, (uint8_t*)pattern, String::kNormalString, length), 
+		(RegExp::Flags)flags
+	)));
+}
 
 int V8_SetProperty(void* value, const char* key, int key_length, void* prop_value, int attribs) {
-	VALUE_SCOPE(value, local_value);
+	VALUE_SCOPE(value);
 
 	return Local<Object>::Cast(local_value)->Set(
 		String::NewFromOneByte(isolate, (uint8_t*)key, String::kNormalString, key_length),
@@ -434,9 +448,9 @@ int V8_SetProperty(void* value, const char* key, int key_length, void* prop_valu
 }
 
 void* V8_GetProperty(void* value, const char* key, int key_length) {
-	VALUE_SCOPE(value, local_value);
+	VALUE_SCOPE(value);
 
-	return (void*)(new V8_Value(isolate, context,
+	return (void*)(new V8_Value(the_value->engine,
 		Local<Object>::Cast(local_value)->Get(
 			String::NewFromOneByte(isolate, (uint8_t*)key, String::kNormalString, key_length)
 		)
@@ -444,7 +458,7 @@ void* V8_GetProperty(void* value, const char* key, int key_length) {
 }
 
 int V8_SetElement(void* value, uint32_t index, void* elem_value) {
-	VALUE_SCOPE(value, local_value);
+	VALUE_SCOPE(value);
 
 	return Local<Object>::Cast(local_value)->Set(
 		index,
@@ -453,15 +467,15 @@ int V8_SetElement(void* value, uint32_t index, void* elem_value) {
 }
 
 void* V8_GetElement(void* value, uint32_t index) {
-	VALUE_SCOPE(value, local_value);
+	VALUE_SCOPE(value);
 
-	return (void*)(new V8_Value(isolate, context,
+	return (void*)(new V8_Value(the_value->engine,
 		Local<Object>::Cast(local_value)->Get(index)
 	));
 }
 
 int V8_GetPropertyAttributes(void *value, const char* key, int key_length) {
-	VALUE_SCOPE(value, local_value);
+	VALUE_SCOPE(value);
 
 	return Local<Object>::Cast(local_value)->GetPropertyAttributes(
 		String::NewFromOneByte(isolate, (uint8_t*)key, String::kNormalString, key_length)
@@ -469,7 +483,7 @@ int V8_GetPropertyAttributes(void *value, const char* key, int key_length) {
 }
 
 int V8_ForceSetProperty(void* value, const char* key, int key_length, void* prop_value, int attribs) {
-	VALUE_SCOPE(value, local_value);
+	VALUE_SCOPE(value);
 
 	return Local<Object>::Cast(local_value)->ForceSet(
 		String::NewFromOneByte(isolate, (uint8_t*)key, String::kNormalString, key_length),
@@ -479,7 +493,7 @@ int V8_ForceSetProperty(void* value, const char* key, int key_length, void* prop
 }
 
 int V8_HasProperty(void *value, const char* key, int key_length) {
-	VALUE_SCOPE(value, local_value);
+	VALUE_SCOPE(value);
 
 	return Local<Object>::Cast(local_value)->Has(
 		String::NewFromOneByte(isolate, (uint8_t*)key, String::kNormalString, key_length)
@@ -487,7 +501,7 @@ int V8_HasProperty(void *value, const char* key, int key_length) {
 }
 
 int V8_DeleteProperty(void *value, const char* key, int key_length) {
-	VALUE_SCOPE(value, local_value);
+	VALUE_SCOPE(value);
 
 	return Local<Object>::Cast(local_value)->Delete(
 		String::NewFromOneByte(isolate, (uint8_t*)key, String::kNormalString, key_length)
@@ -495,7 +509,7 @@ int V8_DeleteProperty(void *value, const char* key, int key_length) {
 }
 
 int V8_ForceDeleteProperty(void *value, const char* key, int key_length) {
-	VALUE_SCOPE(value, local_value);
+	VALUE_SCOPE(value);
 
 	return Local<Object>::Cast(local_value)->ForceDelete(
 		String::NewFromOneByte(isolate, (uint8_t*)key, String::kNormalString, key_length)
@@ -503,19 +517,19 @@ int V8_ForceDeleteProperty(void *value, const char* key, int key_length) {
 }
 
 int V8_HasElement(void* value, uint32_t index) {
-	VALUE_SCOPE(value, local_value);
+	VALUE_SCOPE(value);
 
 	return Local<Object>::Cast(local_value)->Has(index);
 }
 
 int V8_DeleteElement(void* value, uint32_t index) {
-	VALUE_SCOPE(value, local_value);
+	VALUE_SCOPE(value);
 
 	return Local<Object>::Cast(local_value)->Delete(index);
 }
 
 int V8_ArrayLength(void* value) {
-	VALUE_TO_LOCAL(value, local_value);
+	VALUE_SCOPE(value);
 
 	return Local<Array>::Cast(local_value)->Length();
 }
