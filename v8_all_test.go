@@ -173,8 +173,20 @@ func Test_Values(t *testing.T) {
 		t.Fatal(`NewArray(5).IsArray() == false`)
 	}
 
+	if Default.NewArray(5).Length() != 5 {
+		t.Fatal(`NewArray(5).Length() != 5`)
+	}
+
 	if Default.NewRegExp("foo", RF_None).IsRegExp() == false {
 		t.Fatal(`NewRegExp("foo", RF_None).IsRegExp() == false`)
+	}
+
+	if Default.NewRegExp("foo", RF_Global).ToRegExp().Pattern() != "foo" {
+		t.Fatal(`NewRegExp("foo", RF_Global).ToRegExp().Pattern() != "foo"`)
+	}
+
+	if Default.NewRegExp("foo", RF_Global).ToRegExp().Flags() != RF_Global {
+		t.Fatal(`NewRegExp("foo", RF_Global).ToRegExp().Flags() != RF_Global`)
 	}
 
 	runtime.GC()

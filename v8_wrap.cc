@@ -237,15 +237,6 @@ void V8_DisposeValue(void* value) {
 	delete static_cast<V8_Value*>(value);
 }
 
-char* V8_ValueToString(void* value) {
-	VALUE_SCOPE(value);
-
-	Handle<String> string = local_value->ToString();
-	uint8_t* str = (uint8_t*)malloc(string->Length() + 1);
-	string->WriteOneByte(str);
-	return (char*)str;
-}
-
 int V8_ValueIsUndefined(void* value) {
 	VALUE_SCOPE(value);
 	return local_value->IsUndefined();
@@ -393,6 +384,16 @@ int32_t V8_ValueToInt32(void* value) {
 	return local_value->Int32Value();
 }
 
+char* V8_ValueToString(void* value) {
+	VALUE_SCOPE(value);
+
+	Handle<String> string = local_value->ToString();
+	uint8_t* str = (uint8_t*)malloc(string->Length() + 1);
+	string->WriteOneByte(str);
+
+	return (char*)str;
+}
+
 void* V8_NewNumber(void* engine, double val) {
 	ENGINE_SCOPE(engine);
 	
@@ -532,6 +533,23 @@ int V8_ArrayLength(void* value) {
 	VALUE_SCOPE(value);
 
 	return Local<Array>::Cast(local_value)->Length();
+}
+
+char* V8_RegExpGetPattern(void* value) {
+	VALUE_SCOPE(value);
+
+	Local<String> pattern = Local<RegExp>::Cast(local_value)->GetSource();
+
+	uint8_t* str = (uint8_t*)malloc(pattern->Length() + 1);
+	pattern->WriteOneByte(str);
+
+	return (char*)str;
+}
+
+int V8_RegExpGetFlags(void* value) {
+	VALUE_SCOPE(value);
+
+	return Local<RegExp>::Cast(local_value)->GetFlags();
 }
 
 } // extern "C"

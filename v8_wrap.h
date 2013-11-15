@@ -57,8 +57,6 @@ value wrappers
 */
 extern void V8_DisposeValue(void* value);
 
-extern char* V8_ValueToString(void* value);
-
 extern int V8_ValueIsUndefined(void* value);
 
 extern int V8_ValueIsNull(void* value);
@@ -118,6 +116,8 @@ extern uint32_t V8_ValueToUint32(void* value);
 
 extern int32_t V8_ValueToInt32(void* value);
 
+extern char* V8_ValueToString(void* value);
+
 extern void* V8_NewNumber(void* engine, double val);
 
 extern void* V8_NewString(void* engine, const char* val, int val_length);
@@ -154,6 +154,10 @@ extern int V8_HasElement(void* value, uint32_t index);
 extern int V8_DeleteElement(void* value, uint32_t index);
 
 extern int V8_ArrayLength(void* value);
+
+extern char* V8_RegExpGetPattern(void* value);
+
+extern int V8_RegExpGetFlags(void* value);
 
 #ifdef __cplusplus
 } // extern "C"

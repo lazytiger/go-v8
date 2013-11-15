@@ -135,7 +135,7 @@ func (v *Value) ToRegExp() *RegExp {
 	if v == nil {
 		return nil
 	}
-	return &RegExp{&Object{v}}
+	return &RegExp{&Object{v}, "", false, RF_None, false}
 }
 
 const (
