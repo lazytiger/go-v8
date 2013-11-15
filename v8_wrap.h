@@ -10,21 +10,21 @@ extern "C" {
 /*
 isolate wrappers
 */
-extern void* V8_NewIsolate();
+extern void* V8_NewEngine();
 
-extern void V8_DisposeIsolate(void* isolate);
+extern void V8_DisposeEngine(void* engine);
 
 /*
 context wrappers
 */
-extern void* V8_NewContext(void* isolate_ptr);
+extern void* V8_NewContext(void* engine);
 
 extern void V8_DisposeContext(void* context);
 
 /*
 script wrappers
 */
-extern void* V8_Compile(void* context, const char* code, void* script_origin, void* script_data);
+extern void* V8_Compile(void* engine, const char* code, int length, void* script_origin, void* script_data);
 
 extern void V8_DisposeScript(void* script);
 
@@ -33,7 +33,7 @@ extern void* V8_RunScript(void* context, void* script);
 /*
 script data wrappers
 */
-extern void* V8_PreCompile(void* isolate_ptr, const char* code);
+extern void* V8_PreCompile(void* engine, const char* code, int length);
 
 extern void* V8_NewScriptData(const char* data, int length);
 
@@ -48,7 +48,7 @@ extern int V8_ScriptDataHasError(void* script_data);
 /*
 script origin wrappers
 */
-extern void* V8_NewScriptOrigin(void* isolate_ptr, const char* name, int name_length, int line_offset, int column_offset);
+extern void* V8_NewScriptOrigin(void* engine, const char* name, int name_length, int line_offset, int column_offset);
 
 extern void V8_DisposeScriptOrigin(void* script_origin);
 
@@ -97,26 +97,30 @@ extern int V8_ValueIsNativeError(void* value);
 
 extern int V8_ValueIsRegExp(void* value);
 
-extern int V8_ValueGetBoolean(void* value);
-  
-extern double V8_ValueGetNumber(void* value);
-
-extern int64_t V8_ValueGetInteger(void* value);
-
-extern uint32_t V8_ValueGetUint32(void* value);
-
-extern int32_t V8_ValueGetInt32(void* value);
-
 /*
 special values
 */
-extern void* V8_Undefined(void* isolate_ptr);
+extern void* V8_Undefined(void* engine);
 
-extern void* V8_Null(void* isolate_ptr);
+extern void* V8_Null(void* engine);
 
-extern void* V8_True(void* isolate_ptr);
+extern void* V8_True(void* engine);
 
-extern void* V8_False(void* isolate_ptr);
+extern void* V8_False(void* engine);
+
+extern int V8_ValueToBoolean(void* value);
+  
+extern double V8_ValueToNumber(void* value);
+
+extern int64_t V8_ValueToInteger(void* value);
+
+extern uint32_t V8_ValueToUint32(void* value);
+
+extern int32_t V8_ValueToInt32(void* value);
+
+extern void* V8_NewNumber(void* context, double val);
+
+extern void* V8_NewString(void* context, const char* val, int val_length);
 
 /*
 object wrappers

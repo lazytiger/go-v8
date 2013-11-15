@@ -1,2 +1,4 @@
-1. wrap Engine.GetHeapStatistics()
-2. wrap CpuProfiler and HeapProfiler
+1. heap statistics
+2. cpu profiler
+3. heap profiler
+4. stack trace

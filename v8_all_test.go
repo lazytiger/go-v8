@@ -6,7 +6,6 @@ import (
 	"os"
 	"runtime"
 	"runtime/pprof"
-	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -57,7 +56,7 @@ func init() {
 
 func Test_HelloWorld(t *testing.T) {
 	context := Default.NewContext()
-	script := context.Compile("'Hello ' + 'World!'", nil, nil)
+	script := Default.Compile([]byte("'Hello ' + 'World!'"), nil, nil)
 	value := script.Run(context)
 	result := value.ToString()
 
@@ -70,7 +69,7 @@ func Test_HelloWorld(t *testing.T) {
 
 func Test_PreCompile(t *testing.T) {
 	// pre-compile
-	code := "'Hello ' + 'PreCompile!'"
+	code := []byte("'Hello ' + 'PreCompile!'")
 	scriptData1 := Default.PreCompile(code)
 
 	// test save and load script data
@@ -79,7 +78,7 @@ func Test_PreCompile(t *testing.T) {
 
 	// test compile with script data
 	context := Default.NewContext()
-	script := context.Compile(code, nil, scriptData2)
+	script := Default.Compile(code, nil, scriptData2)
 	value := script.Run(context)
 	result := value.ToString()
 
@@ -94,7 +93,7 @@ func Test_TypeCheck(t *testing.T) {
 	// TODO
 }
 
-func Test_SpecialValues(t *testing.T) {
+func Test_Values(t *testing.T) {
 	if !Default.Undefined().IsUndefined() {
 		t.Fatal("Undefined() not match")
 	}
@@ -127,12 +126,51 @@ func Test_SpecialValues(t *testing.T) {
 		t.Fatal("False() != False()")
 	}
 
+	var (
+		maxInt32  = int64(0x7FFFFFFF)
+		maxUint32 = int64(0xFFFFFFFF)
+		maxUint64 = uint64(0xFFFFFFFFFFFFFFFF)
+		maxNumber = int64(maxUint64)
+	)
+
+	if Default.NewBoolean(true).ToBoolean() != true {
+		t.Fatal(`NewBoolean(true).ToBoolean() != true`)
+	}
+
+	if Default.NewNumber(12.34).ToNumber() != 12.34 {
+		t.Fatal(`NewNumber(12.34).ToNumber() != 12.34`)
+	}
+
+	if Default.NewNumber(float64(maxNumber)).ToInteger() != maxNumber {
+		t.Fatal(`NewNumber(float64(maxNumber)).ToInteger() != maxNumber`)
+	}
+
+	if Default.NewInteger(maxInt32).IsInt32() == false {
+		t.Fatal(`NewInteger(maxInt32).IsInt32() == false`)
+	}
+
+	if Default.NewInteger(maxUint32).IsInt32() != false {
+		t.Fatal(`NewInteger(maxUint32).IsInt32() != false`)
+	}
+
+	if Default.NewInteger(maxUint32).IsUint32() == false {
+		t.Fatal(`NewInteger(maxUint32).IsUint32() == false`)
+	}
+
+	if Default.NewInteger(maxNumber).ToInteger() != maxNumber {
+		t.Fatal(`NewInteger(maxNumber).ToInteger() != maxNumber`)
+	}
+
+	if Default.NewString("Hello World!").ToString() != "Hello World!" {
+		t.Fatal(`NewString("Hello World!").ToString() != "Hello World!"`)
+	}
+
 	runtime.GC()
 }
 
 func Test_Object(t *testing.T) {
 	context := Default.NewContext()
-	script := context.Compile("a={};", nil, nil)
+	script := Default.Compile([]byte("a={};"), nil, nil)
 	value := script.Run(context)
 	object := value.ToObject()
 
@@ -263,7 +301,7 @@ func Test_Object(t *testing.T) {
 
 func Test_Array(t *testing.T) {
 	context := Default.NewContext()
-	script := context.Compile("[1,2,3]", nil, nil)
+	script := Default.Compile([]byte("[1,2,3]"), nil, nil)
 	value := script.Run(context)
 	result := value.ToArray()
 
@@ -272,7 +310,7 @@ func Test_Array(t *testing.T) {
 	}
 
 	if elem := result.GetElement(0); elem != nil {
-		if !elem.IsNumber() || elem.GetNumber() != 1 {
+		if !elem.IsNumber() || elem.ToNumber() != 1 {
 			t.Fatal("element 0 value not match")
 		}
 	} else {
@@ -280,7 +318,7 @@ func Test_Array(t *testing.T) {
 	}
 
 	if elem := result.GetElement(1); elem != nil {
-		if !elem.IsNumber() || elem.GetNumber() != 2 {
+		if !elem.IsNumber() || elem.ToNumber() != 2 {
 			t.Fatal("element 1 value not match")
 		}
 	} else {
@@ -288,7 +326,7 @@ func Test_Array(t *testing.T) {
 	}
 
 	if elem := result.GetElement(2); elem != nil {
-		if !elem.IsNumber() || elem.GetNumber() != 3 {
+		if !elem.IsNumber() || elem.ToNumber() != 3 {
 			t.Fatal("element 2 value not match")
 		}
 	} else {
@@ -313,25 +351,25 @@ func Test_Array(t *testing.T) {
 func Test_UnderscoreJS(t *testing.T) {
 	// Need download underscore.js from:
 	// https://raw.github.com/jashkenas/underscore/master/underscore.js
-	code, err := ioutil.ReadFile("underscore.js")
+	code, err := ioutil.ReadFile("labs/underscore.js")
 
 	if err != nil {
 		return
 	}
 
 	context := Default.NewContext()
-	script := context.Compile(string(code), nil, nil)
+	script := Default.Compile(code, nil, nil)
 	script.Run(context)
 
-	test := "_.find([1, 2, 3, 4, 5, 6], function(num){ return num % 2 == 0; });"
-	testScript := context.Compile(test, nil, nil)
+	test := []byte("_.find([1, 2, 3, 4, 5, 6], function(num){ return num % 2 == 0; });")
+	testScript := Default.Compile(test, nil, nil)
 	value := testScript.Run(context)
 
 	if value == nil || value.IsNumber() == false {
 		t.FailNow()
 	}
 
-	result := value.GetNumber()
+	result := value.ToNumber()
 
 	if result != 2 {
 		t.FailNow()
@@ -352,7 +390,7 @@ func Test_ThreadSafe1(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			context := Default.NewContext()
-			script := context.Compile("'Hello ' + 'World!'", nil, nil)
+			script := Default.Compile([]byte("'Hello ' + 'World!'"), nil, nil)
 			value := script.Run(context)
 			result := value.ToString()
 			fail = fail || result != "Hello World!"
@@ -378,7 +416,7 @@ func Test_ThreadSafe2(t *testing.T) {
 		go func() {
 			rand_sched(200)
 
-			script := context.Compile("'Hello ' + 'World!'", nil, nil)
+			script := Default.Compile([]byte("'Hello ' + 'World!'"), nil, nil)
 			value := script.Run(context)
 			result := value.ToString()
 			fail = fail || result != "Hello World!"
@@ -397,7 +435,7 @@ func Test_ThreadSafe2(t *testing.T) {
 func Test_ThreadSafe3(t *testing.T) {
 	fail := false
 	context := Default.NewContext()
-	script := context.Compile("'Hello ' + 'World!'", nil, nil)
+	script := Default.Compile([]byte("'Hello ' + 'World!'"), nil, nil)
 
 	wg := new(sync.WaitGroup)
 	for i := 0; i < 100; i++ {
@@ -423,7 +461,7 @@ func Test_ThreadSafe3(t *testing.T) {
 func Test_ThreadSafe4(t *testing.T) {
 	fail := false
 	context := Default.NewContext()
-	script := context.Compile("'Hello ' + 'World!'", nil, nil)
+	script := Default.Compile([]byte("'Hello ' + 'World!'"), nil, nil)
 	value := script.Run(context)
 
 	wg := new(sync.WaitGroup)
@@ -449,11 +487,11 @@ func Test_ThreadSafe4(t *testing.T) {
 func Test_ThreadSafe5(t *testing.T) {
 	fail := false
 	gonum := 100
-	contextChan := make(chan *Context, gonum*2)
+	contextChan := make(chan *Context, gonum)
 	scriptChan := make(chan *Script, gonum)
 	valueChan := make(chan *Value, gonum)
 
-	for i := 0; i < gonum*2; i++ {
+	for i := 0; i < gonum; i++ {
 		go func() {
 			rand_sched(200)
 
@@ -465,8 +503,7 @@ func Test_ThreadSafe5(t *testing.T) {
 		go func() {
 			rand_sched(200)
 
-			context := <-contextChan
-			scriptChan <- context.Compile("'Hello ' + 'World!'", nil, nil)
+			scriptChan <- Default.Compile([]byte("'Hello ' + 'World!'"), nil, nil)
 		}()
 	}
 
@@ -507,56 +544,58 @@ func Benchmark_NewContext(b *testing.B) {
 		Default.NewContext()
 	}
 
+	b.StopTimer()
 	runtime.GC()
 }
 
 func Benchmark_Compile(b *testing.B) {
-	b.StartTimer()
-	context := Default.NewContext()
-	scripts := make([]string, b.N)
-	for i := 0; i < b.N; i++ {
-		scripts[i] = `function myfunc(a, b) { 
-			return 'Hello ' + '` + strconv.Itoa(i) + `' + a + b
-		}`
-	}
-	b.StartTimer()
+	// Need download underscore.js from:
+	// https://raw.github.com/jashkenas/underscore/master/underscore.js
+	code, err := ioutil.ReadFile("labs/underscore.js")
 
-	for i := 0; i < b.N; i++ {
-		context.Compile(scripts[i], nil, nil)
+	if err != nil {
+		return
 	}
 
+	for i := 0; i < b.N; i++ {
+		Default.Compile(code, nil, nil)
+	}
+
+	b.StopTimer()
 	runtime.GC()
 }
 
 func Benchmark_PreCompile(b *testing.B) {
-	b.StartTimer()
-	context := Default.NewContext()
-	scripts := make([]string, b.N)
-	scriptDatas := make([]*ScriptData, b.N)
-	for i := 0; i < b.N; i++ {
-		scripts[i] = `function myfunc(a, b) { 
-			return 'Hello ' + '` + strconv.Itoa(i) + `' + a + b
-		}`
-		scriptDatas[i] = Default.PreCompile(scripts[i])
+	// Need download underscore.js from:
+	// https://raw.github.com/jashkenas/underscore/master/underscore.js
+	code, err := ioutil.ReadFile("labs/underscore.js")
+
+	if err != nil {
+		return
 	}
+
+	b.StopTimer()
+	scriptData := Default.PreCompile(code)
 	b.StartTimer()
 
 	for i := 0; i < b.N; i++ {
-		context.Compile(scripts[i], nil, scriptDatas[i])
+		Default.Compile(code, nil, scriptData)
 	}
 
+	b.StopTimer()
 	runtime.GC()
 }
 
 func Benchmark_RunScript(b *testing.B) {
 	b.StartTimer()
 	context := Default.NewContext()
-	script := context.Compile("'Hello ' + 'World!'", nil, nil)
+	script := Default.Compile([]byte("1+1"), nil, nil)
 	b.StartTimer()
 
 	for i := 0; i < b.N; i++ {
 		script.Run(context)
 	}
 
+	b.StopTimer()
 	runtime.GC()
 }

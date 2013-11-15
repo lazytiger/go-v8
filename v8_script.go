@@ -15,44 +15,6 @@ type Script struct {
 	self unsafe.Pointer
 }
 
-// Compiles the specified script (context-independent).
-// 'data' is the Pre-parsing data, as obtained by PreCompile()
-// using pre_data speeds compilation if it's done multiple times.
-//
-func (c *Context) Compile(code string, origin *ScriptOrigin, data *ScriptData) *Script {
-	var originPtr unsafe.Pointer
-	var dataPtr unsafe.Pointer
-
-	if origin != nil {
-		originPtr = origin.self
-	}
-
-	if data != nil {
-		dataPtr = data.self
-	}
-
-	ccode := C.CString(code)
-	self := C.V8_Compile(c.self, ccode, originPtr, dataPtr)
-	C.free(unsafe.Pointer(ccode))
-
-	if self == nil {
-		return nil
-	}
-
-	result := &Script{
-		self: self,
-	}
-
-	runtime.SetFinalizer(result, func(s *Script) {
-		if traceDispose {
-			println("v8.Script.Dispose()")
-		}
-		C.V8_DisposeScript(s.self)
-	})
-
-	return result
-}
-
 // Runs the script returning the resulting value.
 //
 func (s Script) Run(c *Context) *Value {
@@ -85,15 +47,6 @@ func newScriptData(self unsafe.Pointer) *ScriptData {
 	})
 
 	return result
-}
-
-// Pre-compiles the specified script (context-independent).
-//
-func (e *Engine) PreCompile(code string) *ScriptData {
-	ccode := C.CString(code)
-	self := C.V8_PreCompile(e.self, ccode)
-	C.free(unsafe.Pointer(ccode))
-	return newScriptData(self)
 }
 
 // Load previous pre-compilation data.

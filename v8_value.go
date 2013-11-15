@@ -36,6 +36,41 @@ func newValue(self unsafe.Pointer) *Value {
 	return result
 }
 
+func (v *Value) ToBoolean() bool {
+	return C.V8_ValueToBoolean(v.self) == 1
+}
+
+func (v *Value) ToNumber() float64 {
+	return float64(C.V8_ValueToNumber(v.self))
+}
+
+func (v *Value) ToInteger() int64 {
+	return int64(C.V8_ValueToInteger(v.self))
+}
+
+func (v *Value) ToUint32() uint32 {
+	return uint32(C.V8_ValueToUint32(v.self))
+}
+
+func (v *Value) ToInt32() int32 {
+	return int32(C.V8_ValueToInt32(v.self))
+}
+
+func (v *Value) ToString() string {
+	cstring := C.V8_ValueToString(v.self)
+	gostring := C.GoString(cstring)
+	C.free(unsafe.Pointer(cstring))
+	return gostring
+}
+
+func (v *Value) ToObject() Object {
+	return Object{v}
+}
+
+func (v *Value) ToArray() Array {
+	return Array{Object{v}}
+}
+
 const (
 	isUndefined     = 1 << iota
 	isNull          = 1 << iota
@@ -188,41 +223,6 @@ func (v *Value) IsRegExp() bool {
 	return v.checkJsType(isRegExp, func(self unsafe.Pointer) bool {
 		return C.V8_ValueIsRegExp(self) == 1
 	})
-}
-
-func (v *Value) GetBoolean() bool {
-	return C.V8_ValueGetBoolean(v.self) == 1
-}
-
-func (v *Value) GetNumber() float64 {
-	return float64(C.V8_ValueGetNumber(v.self))
-}
-
-func (v *Value) GetInteger() int64 {
-	return int64(C.V8_ValueGetInteger(v.self))
-}
-
-func (v *Value) GetUint32() uint32 {
-	return uint32(C.V8_ValueGetUint32(v.self))
-}
-
-func (v *Value) GetInt32() int32 {
-	return int32(C.V8_ValueGetInt32(v.self))
-}
-
-func (v *Value) ToString() string {
-	cstring := C.V8_ValueToString(v.self)
-	gostring := C.GoString(cstring)
-	C.free(unsafe.Pointer(cstring))
-	return gostring
-}
-
-func (v *Value) ToObject() Object {
-	return Object{v}
-}
-
-func (v *Value) ToArray() Array {
-	return Array{Object{v}}
 }
 
 type PropertyAttribute int
