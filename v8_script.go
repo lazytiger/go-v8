@@ -107,7 +107,7 @@ func NewScriptData(data []byte) *ScriptData {
 // Returns the length of Data().
 //
 func (sd *ScriptData) Length() int {
-	return int(C.V8_ScriptDataLength(sd.self))
+	return int(C.V8_ScriptData_Length(sd.self))
 }
 
 // Returns a serialized representation of this ScriptData that can later be
@@ -115,15 +115,15 @@ func (sd *ScriptData) Length() int {
 //
 func (sd *ScriptData) Data() []byte {
 	return C.GoBytes(
-		unsafe.Pointer(C.V8_ScriptDataGetData(sd.self)),
-		C.V8_ScriptDataLength(sd.self),
+		unsafe.Pointer(C.V8_ScriptData_Data(sd.self)),
+		C.V8_ScriptData_Length(sd.self),
 	)
 }
 
 // Returns true if the source code could not be parsed.
 //
 func (sd *ScriptData) HasError() bool {
-	return C.V8_ScriptDataHasError(sd.self) == 1
+	return C.V8_ScriptData_HasError(sd.self) == 1
 }
 
 // The origin, within a file, of a script.

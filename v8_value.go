@@ -91,27 +91,27 @@ func (e *Engine) NewString(value string) *Value {
 }
 
 func (v *Value) ToBoolean() bool {
-	return C.V8_ValueToBoolean(v.self) == 1
+	return C.V8_Value_ToBoolean(v.self) == 1
 }
 
 func (v *Value) ToNumber() float64 {
-	return float64(C.V8_ValueToNumber(v.self))
+	return float64(C.V8_Value_ToNumber(v.self))
 }
 
 func (v *Value) ToInteger() int64 {
-	return int64(C.V8_ValueToInteger(v.self))
+	return int64(C.V8_Value_ToInteger(v.self))
 }
 
 func (v *Value) ToUint32() uint32 {
-	return uint32(C.V8_ValueToUint32(v.self))
+	return uint32(C.V8_Value_ToUint32(v.self))
 }
 
 func (v *Value) ToInt32() int32 {
-	return int32(C.V8_ValueToInt32(v.self))
+	return int32(C.V8_Value_ToInt32(v.self))
 }
 
 func (v *Value) ToString() string {
-	cstring := C.V8_ValueToString(v.self)
+	cstring := C.V8_Value_ToString(v.self)
 	gostring := C.GoString(cstring)
 	C.free(unsafe.Pointer(cstring))
 	return gostring
@@ -187,114 +187,114 @@ func (v *Value) checkJsType(typeCode int, check func(unsafe.Pointer) bool) bool 
 
 func (v *Value) IsUndefined() bool {
 	return v.checkJsType(isUndefined, func(self unsafe.Pointer) bool {
-		return C.V8_ValueIsUndefined(self) == 1
+		return C.V8_Value_IsUndefined(self) == 1
 	})
 }
 
 func (v *Value) IsNull() bool {
 	return v.checkJsType(isNull, func(self unsafe.Pointer) bool {
-		return C.V8_ValueIsNull(self) == 1
+		return C.V8_Value_IsNull(self) == 1
 	})
 }
 
 func (v *Value) IsTrue() bool {
 	return v.checkJsType(isTrue, func(self unsafe.Pointer) bool {
-		return C.V8_ValueIsTrue(self) == 1
+		return C.V8_Value_IsTrue(self) == 1
 	})
 }
 
 func (v *Value) IsFalse() bool {
 	return v.checkJsType(isFalse, func(self unsafe.Pointer) bool {
-		return C.V8_ValueIsFalse(self) == 1
+		return C.V8_Value_IsFalse(self) == 1
 	})
 }
 
 func (v *Value) IsString() bool {
 	return v.checkJsType(isString, func(self unsafe.Pointer) bool {
-		return C.V8_ValueIsString(self) == 1
+		return C.V8_Value_IsString(self) == 1
 	})
 }
 
 func (v *Value) IsFunction() bool {
 	return v.checkJsType(isFunction, func(self unsafe.Pointer) bool {
-		return C.V8_ValueIsFunction(self) == 1
+		return C.V8_Value_IsFunction(self) == 1
 	})
 }
 
 func (v *Value) IsArray() bool {
 	return v.checkJsType(isArray, func(self unsafe.Pointer) bool {
-		return C.V8_ValueIsArray(self) == 1
+		return C.V8_Value_IsArray(self) == 1
 	})
 }
 
 func (v *Value) IsObject() bool {
 	return v.checkJsType(isObject, func(self unsafe.Pointer) bool {
-		return C.V8_ValueIsObject(self) == 1
+		return C.V8_Value_IsObject(self) == 1
 	})
 }
 
 func (v *Value) IsBoolean() bool {
 	return v.checkJsType(isBoolean, func(self unsafe.Pointer) bool {
-		return C.V8_ValueIsBoolean(self) == 1
+		return C.V8_Value_IsBoolean(self) == 1
 	})
 }
 
 func (v *Value) IsNumber() bool {
 	return v.checkJsType(isNumber, func(self unsafe.Pointer) bool {
-		return C.V8_ValueIsNumber(self) == 1
+		return C.V8_Value_IsNumber(self) == 1
 	})
 }
 
 func (v *Value) IsExternal() bool {
 	return v.checkJsType(isExternal, func(self unsafe.Pointer) bool {
-		return C.V8_ValueIsExternal(self) == 1
+		return C.V8_Value_IsExternal(self) == 1
 	})
 }
 
 func (v *Value) IsInt32() bool {
 	return v.checkJsType(isInt32, func(self unsafe.Pointer) bool {
-		return C.V8_ValueIsInt32(self) == 1
+		return C.V8_Value_IsInt32(self) == 1
 	})
 }
 
 func (v *Value) IsUint32() bool {
 	return v.checkJsType(isUint32, func(self unsafe.Pointer) bool {
-		return C.V8_ValueIsUint32(self) == 1
+		return C.V8_Value_IsUint32(self) == 1
 	})
 }
 
 func (v *Value) IsDate() bool {
 	return v.checkJsType(isDate, func(self unsafe.Pointer) bool {
-		return C.V8_ValueIsDate(self) == 1
+		return C.V8_Value_IsDate(self) == 1
 	})
 }
 
 func (v *Value) IsBooleanObject() bool {
 	return v.checkJsType(isBooleanObject, func(self unsafe.Pointer) bool {
-		return C.V8_ValueIsBooleanObject(self) == 1
+		return C.V8_Value_IsBooleanObject(self) == 1
 	})
 }
 
 func (v *Value) IsNumberObject() bool {
 	return v.checkJsType(isNumberObject, func(self unsafe.Pointer) bool {
-		return C.V8_ValueIsNumberObject(self) == 1
+		return C.V8_Value_IsNumberObject(self) == 1
 	})
 }
 
 func (v *Value) IsStringObject() bool {
 	return v.checkJsType(isStringObject, func(self unsafe.Pointer) bool {
-		return C.V8_ValueIsStringObject(self) == 1
+		return C.V8_Value_IsStringObject(self) == 1
 	})
 }
 
 func (v *Value) IsNativeError() bool {
 	return v.checkJsType(isNativeError, func(self unsafe.Pointer) bool {
-		return C.V8_ValueIsNativeError(self) == 1
+		return C.V8_Value_IsNativeError(self) == 1
 	})
 }
 
 func (v *Value) IsRegExp() bool {
 	return v.checkJsType(isRegExp, func(self unsafe.Pointer) bool {
-		return C.V8_ValueIsRegExp(self) == 1
+		return C.V8_Value_IsRegExp(self) == 1
 	})
 }

@@ -169,7 +169,7 @@ func Test_Values(t *testing.T) {
 		t.Fatal(`NewArray(5).IsArray() == false`)
 	}
 
-	if Default.NewArray(5).Length() != 5 {
+	if Default.NewArray(5).ToArray().Length() != 5 {
 		t.Fatal(`NewArray(5).Length() != 5`)
 	}
 
@@ -417,6 +417,17 @@ func Test_Function(t *testing.T) {
 	if result.ToInteger() != 6 {
 		t.Fatal("result != 6")
 	}
+
+	if Default.NewFunction(func(info FunctionCallbackInfo) {
+		if info.Get(0).ToString() != "Hello World!" {
+			t.Fatal(`info.Get(0).ToString() != "Hello World!"`)
+		}
+		info.ReturnBoolean(true)
+	}).ToFunction().Call(
+		Default.NewString("Hello World!"),
+	).IsTrue() == false {
+		t.Fatal("callback return not match")
+	}
 }
 
 func Test_Context(t *testing.T) {
@@ -444,8 +455,6 @@ func Test_Context(t *testing.T) {
 }
 
 func Test_UnderscoreJS(t *testing.T) {
-	// Need download underscore.js from:
-	// https://raw.github.com/jashkenas/underscore/master/underscore.js
 	code, err := ioutil.ReadFile("labs/underscore.js")
 
 	if err != nil {
@@ -759,8 +768,6 @@ func Benchmark_NewArray100(b *testing.B) {
 }
 
 func Benchmark_Compile(b *testing.B) {
-	// Need download underscore.js from:
-	// https://raw.github.com/jashkenas/underscore/master/underscore.js
 	code, err := ioutil.ReadFile("labs/underscore.js")
 
 	if err != nil {
@@ -777,8 +784,6 @@ func Benchmark_Compile(b *testing.B) {
 }
 
 func Benchmark_PreCompile(b *testing.B) {
-	// Need download underscore.js from:
-	// https://raw.github.com/jashkenas/underscore/master/underscore.js
 	code, err := ioutil.ReadFile("labs/underscore.js")
 
 	if err != nil {

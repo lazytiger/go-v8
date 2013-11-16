@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include "v8.h"
+#include "v8_wrap.h"
 
 extern "C" {
 
@@ -102,7 +103,7 @@ public:
 	Local<Value> local_value = Local<Value>::New(isolate, the_value->self) \
 
 /*
-isolate wrappers
+engine
 */
 void* V8_NewEngine() {
 	ISOLATE_SCOPE(Isolate::New());
@@ -123,7 +124,7 @@ void V8_DisposeEngine(void* engine) {
 }
 
 /*
-context wrappers
+context
 */
 void* V8_NewContext(void* engine) {
 	V8_Context* the_engine = static_cast<V8_Context*>(engine);
@@ -143,7 +144,7 @@ void V8_DisposeContext(void* context) {
 }
 
 /*
-script wrappers
+script
 */
 void* V8_Compile(void* engine, const char* code, int length, void* script_origin,void* script_data) {
 	ENGINE_SCOPE(engine);
@@ -183,7 +184,7 @@ void* V8_RunScript(void* context, void* script) {
 }
 
 /*
-script data wrappers
+script data
 */
 void* V8_PreCompile(void* engine, const char* code, int length) {
 	V8_Context* the_engine = static_cast<V8_Context*>(engine);
@@ -202,20 +203,20 @@ void V8_DisposeScriptData(void* script_data) {
 	delete static_cast<ScriptData*>(script_data);
 }
 
-int V8_ScriptDataLength(void* script_data) {
+int V8_ScriptData_Length(void* script_data) {
 	return static_cast<ScriptData*>(script_data)->Length();
 }
 
-const char* V8_ScriptDataGetData(void* script_data) {
+const char* V8_ScriptData_Data(void* script_data) {
 	return static_cast<ScriptData*>(script_data)->Data();
 }
 
-int V8_ScriptDataHasError(void* script_data) {
+int V8_ScriptData_HasError(void* script_data) {
 	return static_cast<ScriptData*>(script_data)->HasError();
 }
 
 /*
-script origin wrappers
+script origin
 */
 void* V8_NewScriptOrigin(void* engine, const char* name, int name_length, int line_offset, int column_offset) {
 	V8_Context* the_engine = static_cast<V8_Context*>(engine);
@@ -239,104 +240,136 @@ void V8_DisposeValue(void* value) {
 	delete static_cast<V8_Value*>(value);
 }
 
-int V8_ValueIsUndefined(void* value) {
+int V8_Value_IsUndefined(void* value) {
 	VALUE_SCOPE(value);
 	return local_value->IsUndefined();
 }
 
-int V8_ValueIsNull(void* value) {
+int V8_Value_IsNull(void* value) {
 	VALUE_SCOPE(value);
 	return local_value->IsNull();
 }
 
-int V8_ValueIsTrue(void* value) {
+int V8_Value_IsTrue(void* value) {
 	VALUE_SCOPE(value);
 	return local_value->IsTrue();
 }
 
-int V8_ValueIsFalse(void* value) {
+int V8_Value_IsFalse(void* value) {
 	VALUE_SCOPE(value);
 	return local_value->IsFalse();
 }
 
-int V8_ValueIsString(void* value) {
+int V8_Value_IsString(void* value) {
 	VALUE_SCOPE(value);
 	return local_value->IsString();
 }
 
-int V8_ValueIsFunction(void* value) {
+int V8_Value_IsFunction(void* value) {
 	VALUE_SCOPE(value);
 	return local_value->IsFunction();
 }
 
-int V8_ValueIsArray(void* value) {
+int V8_Value_IsArray(void* value) {
 	VALUE_SCOPE(value);
 	return local_value->IsArray();
 }
 
-int V8_ValueIsObject(void* value) {
+int V8_Value_IsObject(void* value) {
 	VALUE_SCOPE(value);
 	return local_value->IsObject();
 }
 
-int V8_ValueIsBoolean(void* value) {
+int V8_Value_IsBoolean(void* value) {
 	VALUE_SCOPE(value);
 	return local_value->IsBoolean();
 }
 
-int V8_ValueIsNumber(void* value) {
+int V8_Value_IsNumber(void* value) {
 	VALUE_SCOPE(value);
 	return local_value->IsNumber();
 }
 
-int V8_ValueIsExternal(void* value) {
+int V8_Value_IsExternal(void* value) {
 	VALUE_SCOPE(value);
 	return local_value->IsExternal();
 }
 
-int V8_ValueIsInt32(void* value) {
+int V8_Value_IsInt32(void* value) {
 	VALUE_SCOPE(value);
 	return local_value->IsInt32();
 }
 
-int V8_ValueIsUint32(void* value) {
+int V8_Value_IsUint32(void* value) {
 	VALUE_SCOPE(value);
 	return local_value->IsUint32();
 }
 
-int V8_ValueIsDate(void* value) {
+int V8_Value_IsDate(void* value) {
 	VALUE_SCOPE(value);
 	return local_value->IsDate();
 }
 
-int V8_ValueIsBooleanObject(void* value) {
+int V8_Value_IsBooleanObject(void* value) {
 	VALUE_SCOPE(value);
 	return local_value->IsBooleanObject();
 }
 
-int V8_ValueIsNumberObject(void* value) {
+int V8_Value_IsNumberObject(void* value) {
 	VALUE_SCOPE(value);
 	return local_value->IsNumberObject();
 }
 
-int V8_ValueIsStringObject(void* value) {
+int V8_Value_IsStringObject(void* value) {
 	VALUE_SCOPE(value);
 	return local_value->IsStringObject();
 }
 
-int V8_ValueIsNativeError(void* value) {
+int V8_Value_IsNativeError(void* value) {
 	VALUE_SCOPE(value);
 	return local_value->IsNativeError();
 }
 
-int V8_ValueIsRegExp(void* value) {
+int V8_Value_IsRegExp(void* value) {
 	VALUE_SCOPE(value);
 	return local_value->IsRegExp();
 }
 
-/*
-special values
-*/
+int V8_Value_ToBoolean(void* value) {
+	VALUE_SCOPE(value);
+	return local_value->BooleanValue();
+}
+  
+double V8_Value_ToNumber(void* value) {
+	VALUE_SCOPE(value);
+	return local_value->NumberValue();
+}
+
+int64_t V8_Value_ToInteger(void* value) {
+	VALUE_SCOPE(value);
+	return local_value->IntegerValue();
+}
+
+uint32_t V8_Value_ToUint32(void* value) {
+	VALUE_SCOPE(value);
+	return local_value->Uint32Value();
+}
+
+int32_t V8_Value_ToInt32(void* value) {
+	VALUE_SCOPE(value);
+	return local_value->Int32Value();
+}
+
+char* V8_Value_ToString(void* value) {
+	VALUE_SCOPE(value);
+
+	Handle<String> string = local_value->ToString();
+	uint8_t* str = (uint8_t*)malloc(string->Length() + 1);
+	string->WriteOneByte(str);
+
+	return (char*)str;
+}
+
 void* V8_Undefined(void* engine) {
 	V8_Context* the_engine = static_cast<V8_Context*>(engine);
 	ISOLATE_SCOPE(the_engine->GetIsolate());
@@ -359,41 +392,6 @@ void* V8_False(void* engine) {
 	V8_Context* the_engine = static_cast<V8_Context*>(engine);
 	ISOLATE_SCOPE(the_engine->GetIsolate());
 	return (void*)(new V8_Value(the_engine, False(isolate)));
-}
-
-int V8_ValueToBoolean(void* value) {
-	VALUE_SCOPE(value);
-	return local_value->BooleanValue();
-}
-  
-double V8_ValueToNumber(void* value) {
-	VALUE_SCOPE(value);
-	return local_value->NumberValue();
-}
-
-int64_t V8_ValueToInteger(void* value) {
-	VALUE_SCOPE(value);
-	return local_value->IntegerValue();
-}
-
-uint32_t V8_ValueToUint32(void* value) {
-	VALUE_SCOPE(value);
-	return local_value->Uint32Value();
-}
-
-int32_t V8_ValueToInt32(void* value) {
-	VALUE_SCOPE(value);
-	return local_value->Int32Value();
-}
-
-char* V8_ValueToString(void* value) {
-	VALUE_SCOPE(value);
-
-	Handle<String> string = local_value->ToString();
-	uint8_t* str = (uint8_t*)malloc(string->Length() + 1);
-	string->WriteOneByte(str);
-
-	return (char*)str;
 }
 
 void* V8_NewNumber(void* engine, double val) {
@@ -423,7 +421,7 @@ void* V8_NewObject(void* engine) {
 	));
 }
 
-int V8_ObjectSetProperty(void* value, const char* key, int key_length, void* prop_value, int attribs) {
+int V8_Object_SetProperty(void* value, const char* key, int key_length, void* prop_value, int attribs) {
 	VALUE_SCOPE(value);
 
 	return Local<Object>::Cast(local_value)->Set(
@@ -433,7 +431,7 @@ int V8_ObjectSetProperty(void* value, const char* key, int key_length, void* pro
 	);
 }
 
-void* V8_ObjectGetProperty(void* value, const char* key, int key_length) {
+void* V8_Object_GetProperty(void* value, const char* key, int key_length) {
 	VALUE_SCOPE(value);
 
 	return (void*)(new V8_Value(the_value->engine,
@@ -443,7 +441,7 @@ void* V8_ObjectGetProperty(void* value, const char* key, int key_length) {
 	));
 }
 
-int V8_ObjectSetElement(void* value, uint32_t index, void* elem_value) {
+int V8_Object_SetElement(void* value, uint32_t index, void* elem_value) {
 	VALUE_SCOPE(value);
 
 	return Local<Object>::Cast(local_value)->Set(
@@ -452,7 +450,7 @@ int V8_ObjectSetElement(void* value, uint32_t index, void* elem_value) {
 	);
 }
 
-void* V8_ObjectGetElement(void* value, uint32_t index) {
+void* V8_Object_GetElement(void* value, uint32_t index) {
 	VALUE_SCOPE(value);
 
 	return (void*)(new V8_Value(the_value->engine,
@@ -460,7 +458,7 @@ void* V8_ObjectGetElement(void* value, uint32_t index) {
 	));
 }
 
-int V8_ObjectGetPropertyAttributes(void *value, const char* key, int key_length) {
+int V8_Object_GetPropertyAttributes(void *value, const char* key, int key_length) {
 	VALUE_SCOPE(value);
 
 	return Local<Object>::Cast(local_value)->GetPropertyAttributes(
@@ -468,7 +466,7 @@ int V8_ObjectGetPropertyAttributes(void *value, const char* key, int key_length)
 	);
 }
 
-int V8_ObjectForceSetProperty(void* value, const char* key, int key_length, void* prop_value, int attribs) {
+int V8_Object_ForceSetProperty(void* value, const char* key, int key_length, void* prop_value, int attribs) {
 	VALUE_SCOPE(value);
 
 	return Local<Object>::Cast(local_value)->ForceSet(
@@ -478,7 +476,7 @@ int V8_ObjectForceSetProperty(void* value, const char* key, int key_length, void
 	);
 }
 
-int V8_ObjectHasProperty(void *value, const char* key, int key_length) {
+int V8_Object_HasProperty(void *value, const char* key, int key_length) {
 	VALUE_SCOPE(value);
 
 	return Local<Object>::Cast(local_value)->Has(
@@ -486,7 +484,7 @@ int V8_ObjectHasProperty(void *value, const char* key, int key_length) {
 	);
 }
 
-int V8_ObjectDeleteProperty(void *value, const char* key, int key_length) {
+int V8_Object_DeleteProperty(void *value, const char* key, int key_length) {
 	VALUE_SCOPE(value);
 
 	return Local<Object>::Cast(local_value)->Delete(
@@ -494,7 +492,7 @@ int V8_ObjectDeleteProperty(void *value, const char* key, int key_length) {
 	);
 }
 
-int V8_ObjectForceDeleteProperty(void *value, const char* key, int key_length) {
+int V8_Object_ForceDeleteProperty(void *value, const char* key, int key_length) {
 	VALUE_SCOPE(value);
 
 	return Local<Object>::Cast(local_value)->ForceDelete(
@@ -502,19 +500,19 @@ int V8_ObjectForceDeleteProperty(void *value, const char* key, int key_length) {
 	);
 }
 
-int V8_ObjectHasElement(void* value, uint32_t index) {
+int V8_Object_HasElement(void* value, uint32_t index) {
 	VALUE_SCOPE(value);
 
 	return Local<Object>::Cast(local_value)->Has(index);
 }
 
-int V8_ObjectDeleteElement(void* value, uint32_t index) {
+int V8_Object_DeleteElement(void* value, uint32_t index) {
 	VALUE_SCOPE(value);
 
 	return Local<Object>::Cast(local_value)->Delete(index);
 }
 
-void* V8_ObjectGetPropertyNames(void *value) {
+void* V8_Object_GetPropertyNames(void *value) {
 	VALUE_SCOPE(value);
 
 	return (void*)new V8_Value(the_value->engine,
@@ -522,7 +520,7 @@ void* V8_ObjectGetPropertyNames(void *value) {
 	);
 }
 
-void* V8_ObjectGetOwnPropertyNames(void *value) {
+void* V8_Object_GetOwnPropertyNames(void *value) {
 	VALUE_SCOPE(value);
 
 	return (void*)new V8_Value(the_value->engine,
@@ -530,7 +528,7 @@ void* V8_ObjectGetOwnPropertyNames(void *value) {
 	);
 }
 
-void* V8_ObjectGetPrototype(void *value) {
+void* V8_Object_GetPrototype(void *value) {
 	VALUE_SCOPE(value);
 
 	return (void*)new V8_Value(the_value->engine,
@@ -538,7 +536,7 @@ void* V8_ObjectGetPrototype(void *value) {
 	);
 }
 
-int V8_ObjectSetPrototype(void *value, void *proto) {
+int V8_Object_SetPrototype(void *value, void *proto) {
 	VALUE_SCOPE(value);
 
 	return Local<Object>::Cast(local_value)->SetPrototype(
@@ -546,7 +544,7 @@ int V8_ObjectSetPrototype(void *value, void *proto) {
 	);
 }
 
-int V8_ObjectIsCallable(void *value) {
+int V8_Object_IsCallable(void *value) {
 	VALUE_SCOPE(value);
 
 	return Local<Object>::Cast(local_value)->IsCallable();
@@ -563,9 +561,8 @@ void* V8_NewArray(void* engine, int length) {
 	));
 }
 
-int V8_ArrayLength(void* value) {
+int V8_Array_Length(void* value) {
 	VALUE_SCOPE(value);
-
 	return Local<Array>::Cast(local_value)->Length();
 }
 
@@ -581,7 +578,7 @@ void* V8_NewRegExp(void* engine, const char* pattern, int length, int flags) {
 	)));
 }
 
-char* V8_RegExpPattern(void* value) {
+char* V8_RegExp_Pattern(void* value) {
 	VALUE_SCOPE(value);
 
 	Local<String> pattern = Local<RegExp>::Cast(local_value)->GetSource();
@@ -592,15 +589,47 @@ char* V8_RegExpPattern(void* value) {
 	return (char*)str;
 }
 
-int V8_RegExpFlags(void* value) {
+int V8_RegExp_Flags(void* value) {
 	VALUE_SCOPE(value);
-
 	return Local<RegExp>::Cast(local_value)->GetFlags();
 }
 
 /*
 function
 */
+typedef struct {
+	void*                              callback;
+	V8_Context*                        engine;
+	const FunctionCallbackInfo<Value>* info;
+} V8_FunctionCallbackInfo;
+
+extern void go_function_callback(void* info, void* callback);
+
+void V8_InnerFunctionCallback(const FunctionCallbackInfo<Value>& info) {
+	v8::Isolate* isolate = v8::Isolate::GetCurrent();
+	HandleScope handle_scope(isolate);
+
+	V8_FunctionCallbackInfo* myinfo = (V8_FunctionCallbackInfo*)Local<External>::Cast(info.Data())->Value();
+
+	myinfo->info = &info;
+
+	go_function_callback((void*)myinfo, myinfo->callback);
+
+	delete myinfo;
+}
+
+void* V8_NewFunction(void* engine, void* callback) {
+	ENGINE_SCOPE(engine);
+
+	V8_FunctionCallbackInfo* info = new V8_FunctionCallbackInfo();
+	info->engine = the_engine;
+	info->callback = callback;
+
+	return (void*)(new V8_Value(the_engine,
+		Function::New(isolate, V8_InnerFunctionCallback, External::New(info))
+	));
+}
+
 void* V8_FunctionCall(void* value, int argc, void* argv) {
 	VALUE_SCOPE(value);
 
@@ -618,6 +647,84 @@ void* V8_FunctionCall(void* value, int argc, void* argv) {
 	delete[] real_argv;
 
 	return result;
+}
+
+void* V8_FunctionCallbackInfo_Get(void* info, int i) {
+	V8_FunctionCallbackInfo *the_info = (V8_FunctionCallbackInfo*)info;
+	ENGINE_SCOPE(the_info->engine);
+	return (void*)new V8_Value(the_info->engine, (*(the_info->info))[i]);
+}
+
+int V8_FunctionCallbackInfo_Length(void* info) {
+	V8_FunctionCallbackInfo *the_info = (V8_FunctionCallbackInfo*)info;
+	ENGINE_SCOPE(the_info->engine);
+	return the_info->info->Length();
+}
+
+void* V8_FunctionCallbackInfo_Callee(void* info) {
+	V8_FunctionCallbackInfo *the_info = (V8_FunctionCallbackInfo*)info;
+	ENGINE_SCOPE(the_info->engine);
+	return (void*)new V8_Value(the_info->engine, the_info->info->Callee());
+}
+
+void* V8_FunctionCallbackInfo_This(void* info) {
+	V8_FunctionCallbackInfo *the_info = (V8_FunctionCallbackInfo*)info;
+	ENGINE_SCOPE(the_info->engine);
+	return (void*)new V8_Value(the_info->engine, the_info->info->This());
+}
+
+void* V8_FunctionCallbackInfo_Holder(void* info) {
+	V8_FunctionCallbackInfo *the_info = (V8_FunctionCallbackInfo*)info;
+	ENGINE_SCOPE(the_info->engine);
+	return (void*)new V8_Value(the_info->engine, the_info->info->Holder());
+}
+
+void V8_FunctionCallbackInfoReturn(void *info, void* result) {
+	V8_FunctionCallbackInfo *the_info = (V8_FunctionCallbackInfo*)info;
+	ENGINE_SCOPE(the_info->engine);
+	the_info->info->GetReturnValue().Set(static_cast<V8_Value*>(result)->self);
+}
+
+void V8_FunctionCallbackInfo_ReturnBoolean(void* info, int v) {
+	V8_FunctionCallbackInfo *the_info = (V8_FunctionCallbackInfo*)info;
+	ENGINE_SCOPE(the_info->engine);
+	the_info->info->GetReturnValue().Set((bool)v);
+}
+
+void V8_FunctionCallbackInfo_ReturnNumber(void* info, double v) {
+	V8_FunctionCallbackInfo *the_info = (V8_FunctionCallbackInfo*)info;
+	ENGINE_SCOPE(the_info->engine);
+	the_info->info->GetReturnValue().Set(v);
+}
+
+void V8_FunctionCallbackInfo_ReturnInt32(void* info, int32_t v) {
+	V8_FunctionCallbackInfo *the_info = (V8_FunctionCallbackInfo*)info;
+	ENGINE_SCOPE(the_info->engine);
+	the_info->info->GetReturnValue().Set(v);
+}
+
+void V8_FunctionCallbackInfo_ReturnUint32(void* info, uint32_t v) {
+	V8_FunctionCallbackInfo *the_info = (V8_FunctionCallbackInfo*)info;
+	ENGINE_SCOPE(the_info->engine);
+	the_info->info->GetReturnValue().Set(v);
+}
+
+void V8_FunctionCallbackInfo_ReturnNull(void* info) {
+	V8_FunctionCallbackInfo *the_info = (V8_FunctionCallbackInfo*)info;
+	ENGINE_SCOPE(the_info->engine);
+	the_info->info->GetReturnValue().SetNull();
+}
+
+void V8_FunctionCallbackInfo_ReturnUndefined(void *info) {
+	V8_FunctionCallbackInfo *the_info = (V8_FunctionCallbackInfo*)info;
+	ENGINE_SCOPE(the_info->engine);
+	the_info->info->GetReturnValue().SetUndefined();
+}
+
+void V8_FunctionCallbackInfo_ReturnEmptyString(void *info) {
+	V8_FunctionCallbackInfo *the_info = (V8_FunctionCallbackInfo*)info;
+	ENGINE_SCOPE(the_info->engine);
+	the_info->info->GetReturnValue().SetEmptyString();
 }
 
 } // extern "C"
