@@ -709,6 +709,18 @@ void V8_FunctionCallbackInfo_ReturnUint32(void* info, uint32_t v) {
 	the_info->info->GetReturnValue().Set(v);
 }
 
+void V8_FunctionCallbackInfo_ReturnString(void* info, const char* str, int str_length) {
+	V8_FunctionCallbackInfo *the_info = (V8_FunctionCallbackInfo*)info;
+	ENGINE_SCOPE(the_info->engine);
+	if (str_length == 0) {
+		the_info->info->GetReturnValue().SetEmptyString();
+	} else {
+		the_info->info->GetReturnValue().Set(
+			String::NewFromOneByte(isolate, (uint8_t*)str, String::kNormalString, str_length)
+		);
+	}
+}
+
 void V8_FunctionCallbackInfo_ReturnNull(void* info) {
 	V8_FunctionCallbackInfo *the_info = (V8_FunctionCallbackInfo*)info;
 	ENGINE_SCOPE(the_info->engine);
@@ -719,12 +731,6 @@ void V8_FunctionCallbackInfo_ReturnUndefined(void *info) {
 	V8_FunctionCallbackInfo *the_info = (V8_FunctionCallbackInfo*)info;
 	ENGINE_SCOPE(the_info->engine);
 	the_info->info->GetReturnValue().SetUndefined();
-}
-
-void V8_FunctionCallbackInfo_ReturnEmptyString(void *info) {
-	V8_FunctionCallbackInfo *the_info = (V8_FunctionCallbackInfo*)info;
-	ENGINE_SCOPE(the_info->engine);
-	the_info->info->GetReturnValue().SetEmptyString();
 }
 
 } // extern "C"

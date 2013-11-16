@@ -195,13 +195,13 @@ extern void V8_FunctionCallbackInfo_ReturnInt32(void* info, int32_t v);
 
 extern void V8_FunctionCallbackInfo_ReturnUint32(void* info, uint32_t v);
 
+extern void V8_FunctionCallbackInfo_ReturnString(void* info, const char* str, int str_length);
+
 extern void V8_FunctionCallbackInfo_ReturnNull(void* info);
 
-extern void V8_FunctionCallbackInfo_ReturnUndefined(void *info);
+extern void V8_FunctionCallbackInfo_ReturnUndefined(void* info);
 
-extern void V8_FunctionCallbackInfo_ReturnEmptyString(void *info);
-
-extern void V8_FunctionCallbackInfo_Return(void *info, void* result);
+extern void V8_FunctionCallbackInfo_Return(void* info, void* result);
 
 #ifdef __cplusplus
 } // extern "C"

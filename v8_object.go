@@ -293,14 +293,15 @@ func (fc *FunctionCallbackInfo) ReturnUint32(value uint32) {
 	C.V8_FunctionCallbackInfo_ReturnUint32(fc.self, C.uint32_t(value))
 }
 
+func (fc *FunctionCallbackInfo) ReturnString(value string) {
+	valuePtr := unsafe.Pointer((*reflect.StringHeader)(unsafe.Pointer(&value)).Data)
+	C.V8_FunctionCallbackInfo_ReturnString(fc.self, (*C.char)(valuePtr), C.int(len(value)))
+}
+
 func (fc *FunctionCallbackInfo) ReturnNull() {
 	C.V8_FunctionCallbackInfo_ReturnNull(fc.self)
 }
 
 func (fc *FunctionCallbackInfo) ReturnUndefined() {
 	C.V8_FunctionCallbackInfo_ReturnUndefined(fc.self)
-}
-
-func (fc *FunctionCallbackInfo) ReturnEmptyString() {
-	C.V8_FunctionCallbackInfo_ReturnEmptyString(fc.self)
 }
