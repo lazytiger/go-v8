@@ -123,41 +123,60 @@ extern void* V8_NewNumber(void* engine, double val);
 extern void* V8_NewString(void* engine, const char* val, int val_length);
 
 /*
-object wrappers
+object
 */
 extern void* V8_NewObject(void* engine);
 
+extern int V8_ObjectSetProperty(void* value, const char* key, int key_length, void* prop_value, int attribs);
+
+extern void* V8_ObjectGetProperty(void* value, const char* key, int key_length);
+
+extern int V8_ObjectSetElement(void* value, uint32_t index, void* elem_value);
+
+extern void* V8_ObjectGetElement(void* value, uint32_t index);
+
+extern int V8_ObjectGetPropertyAttributes(void *value, const char* key, int key_length);
+
+extern int V8_ObjectForceSetProperty(void* value, const char* key, int key_length, void* prop_value, int attribs);
+
+extern int V8_ObjectHasProperty(void *value, const char* key, int key_length);
+
+extern int V8_ObjectDeleteProperty(void *value, const char* key, int key_length);
+
+extern int V8_ObjectForceDeleteProperty(void *value, const char* key, int key_length);
+
+extern int V8_ObjectHasElement(void* value, uint32_t index);
+
+extern int V8_ObjectDeleteElement(void* value, uint32_t index);
+
+extern void* V8_ObjectGetPropertyNames(void *value);
+
+extern void* V8_ObjectGetOwnPropertyNames(void *value);
+
+extern void* V8_ObjectGetPrototype(void *value);
+
+extern int V8_ObjectSetPrototype(void *value, void *proto);
+
+/*
+array
+*/
 extern void* V8_NewArray(void* engine, int length);
-
-extern void* V8_NewRegExp(void* engine, const char* pattern, int length, int flags);
-
-extern int V8_SetProperty(void* value, const char* key, int key_length, void* prop_value, int attribs);
-
-extern void* V8_GetProperty(void* value, const char* key, int key_length);
-
-extern int V8_SetElement(void* value, uint32_t index, void* elem_value);
-
-extern void* V8_GetElement(void* value, uint32_t index);
-
-extern int V8_GetPropertyAttributes(void *value, const char* key, int key_length);
-
-extern int V8_ForceSetProperty(void* value, const char* key, int key_length, void* prop_value, int attribs);
-
-extern int V8_HasProperty(void *value, const char* key, int key_length);
-
-extern int V8_DeleteProperty(void *value, const char* key, int key_length);
-
-extern int V8_ForceDeleteProperty(void *value, const char* key, int key_length);
-
-extern int V8_HasElement(void* value, uint32_t index);
-
-extern int V8_DeleteElement(void* value, uint32_t index);
 
 extern int V8_ArrayLength(void* value);
 
-extern char* V8_RegExpGetPattern(void* value);
+/*
+regexp
+*/
+extern void* V8_NewRegExp(void* engine, const char* pattern, int length, int flags);
 
-extern int V8_RegExpGetFlags(void* value);
+extern char* V8_RegExpPattern(void* value);
+
+extern int V8_RegExpFlags(void* value);
+
+/*
+function
+*/
+extern void* V8_FunctionCall(void* value, int argc, void* argv);
 
 #ifdef __cplusplus
 } // extern "C"

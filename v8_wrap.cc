@@ -13,7 +13,8 @@ public:
 		self.Reset(isolate_, context);
 	}
 
-	V8_Context(V8_Context* engine, Handle<Context> context) {
+	V8_Context(V8_Context* ownerEngine, Handle<Context> context) {
+		engine = ownerEngine;
 		isolate_ = engine->GetIsolate();
 		self.Reset(isolate_, context);
 	}
@@ -31,6 +32,7 @@ public:
 	}
 
 	Isolate* isolate_;
+	V8_Context* engine;
 	Persistent<Context> self;
 };
 
@@ -411,7 +413,7 @@ void* V8_NewString(void* engine, const char* val, int val_length) {
 }
 
 /*
-object wrappers
+object
 */
 void* V8_NewObject(void* engine) {
 	ENGINE_SCOPE(engine);
@@ -421,24 +423,7 @@ void* V8_NewObject(void* engine) {
 	));
 }
 
-void* V8_NewArray(void* engine, int length) {
-	ENGINE_SCOPE(engine);
-
-	return (void*)(new V8_Value(the_engine, 
-		Array::New(length)
-	));
-}
-
-void* V8_NewRegExp(void* engine, const char* pattern, int length, int flags) {
-	ENGINE_SCOPE(engine);
-
-	return (void*)(new V8_Value(the_engine, RegExp::New(
-		String::NewFromOneByte(isolate, (uint8_t*)pattern, String::kNormalString, length), 
-		(RegExp::Flags)flags
-	)));
-}
-
-int V8_SetProperty(void* value, const char* key, int key_length, void* prop_value, int attribs) {
+int V8_ObjectSetProperty(void* value, const char* key, int key_length, void* prop_value, int attribs) {
 	VALUE_SCOPE(value);
 
 	return Local<Object>::Cast(local_value)->Set(
@@ -448,7 +433,7 @@ int V8_SetProperty(void* value, const char* key, int key_length, void* prop_valu
 	);
 }
 
-void* V8_GetProperty(void* value, const char* key, int key_length) {
+void* V8_ObjectGetProperty(void* value, const char* key, int key_length) {
 	VALUE_SCOPE(value);
 
 	return (void*)(new V8_Value(the_value->engine,
@@ -458,7 +443,7 @@ void* V8_GetProperty(void* value, const char* key, int key_length) {
 	));
 }
 
-int V8_SetElement(void* value, uint32_t index, void* elem_value) {
+int V8_ObjectSetElement(void* value, uint32_t index, void* elem_value) {
 	VALUE_SCOPE(value);
 
 	return Local<Object>::Cast(local_value)->Set(
@@ -467,7 +452,7 @@ int V8_SetElement(void* value, uint32_t index, void* elem_value) {
 	);
 }
 
-void* V8_GetElement(void* value, uint32_t index) {
+void* V8_ObjectGetElement(void* value, uint32_t index) {
 	VALUE_SCOPE(value);
 
 	return (void*)(new V8_Value(the_value->engine,
@@ -475,7 +460,7 @@ void* V8_GetElement(void* value, uint32_t index) {
 	));
 }
 
-int V8_GetPropertyAttributes(void *value, const char* key, int key_length) {
+int V8_ObjectGetPropertyAttributes(void *value, const char* key, int key_length) {
 	VALUE_SCOPE(value);
 
 	return Local<Object>::Cast(local_value)->GetPropertyAttributes(
@@ -483,7 +468,7 @@ int V8_GetPropertyAttributes(void *value, const char* key, int key_length) {
 	);
 }
 
-int V8_ForceSetProperty(void* value, const char* key, int key_length, void* prop_value, int attribs) {
+int V8_ObjectForceSetProperty(void* value, const char* key, int key_length, void* prop_value, int attribs) {
 	VALUE_SCOPE(value);
 
 	return Local<Object>::Cast(local_value)->ForceSet(
@@ -493,7 +478,7 @@ int V8_ForceSetProperty(void* value, const char* key, int key_length, void* prop
 	);
 }
 
-int V8_HasProperty(void *value, const char* key, int key_length) {
+int V8_ObjectHasProperty(void *value, const char* key, int key_length) {
 	VALUE_SCOPE(value);
 
 	return Local<Object>::Cast(local_value)->Has(
@@ -501,7 +486,7 @@ int V8_HasProperty(void *value, const char* key, int key_length) {
 	);
 }
 
-int V8_DeleteProperty(void *value, const char* key, int key_length) {
+int V8_ObjectDeleteProperty(void *value, const char* key, int key_length) {
 	VALUE_SCOPE(value);
 
 	return Local<Object>::Cast(local_value)->Delete(
@@ -509,7 +494,7 @@ int V8_DeleteProperty(void *value, const char* key, int key_length) {
 	);
 }
 
-int V8_ForceDeleteProperty(void *value, const char* key, int key_length) {
+int V8_ObjectForceDeleteProperty(void *value, const char* key, int key_length) {
 	VALUE_SCOPE(value);
 
 	return Local<Object>::Cast(local_value)->ForceDelete(
@@ -517,16 +502,65 @@ int V8_ForceDeleteProperty(void *value, const char* key, int key_length) {
 	);
 }
 
-int V8_HasElement(void* value, uint32_t index) {
+int V8_ObjectHasElement(void* value, uint32_t index) {
 	VALUE_SCOPE(value);
 
 	return Local<Object>::Cast(local_value)->Has(index);
 }
 
-int V8_DeleteElement(void* value, uint32_t index) {
+int V8_ObjectDeleteElement(void* value, uint32_t index) {
 	VALUE_SCOPE(value);
 
 	return Local<Object>::Cast(local_value)->Delete(index);
+}
+
+void* V8_ObjectGetPropertyNames(void *value) {
+	VALUE_SCOPE(value);
+
+	return (void*)new V8_Value(the_value->engine,
+		Local<Object>::Cast(local_value)->GetPropertyNames()
+	);
+}
+
+void* V8_ObjectGetOwnPropertyNames(void *value) {
+	VALUE_SCOPE(value);
+
+	return (void*)new V8_Value(the_value->engine,
+		Local<Object>::Cast(local_value)->GetOwnPropertyNames()
+	);
+}
+
+void* V8_ObjectGetPrototype(void *value) {
+	VALUE_SCOPE(value);
+
+	return (void*)new V8_Value(the_value->engine,
+		Local<Object>::Cast(local_value)->GetPrototype()
+	);
+}
+
+int V8_ObjectSetPrototype(void *value, void *proto) {
+	VALUE_SCOPE(value);
+
+	return Local<Object>::Cast(local_value)->SetPrototype(
+		Local<Value>::New(isolate, static_cast<V8_Value*>(proto)->self)
+	);
+}
+
+int V8_ObjectIsCallable(void *value) {
+	VALUE_SCOPE(value);
+
+	return Local<Object>::Cast(local_value)->IsCallable();
+}
+
+/*
+array
+*/
+void* V8_NewArray(void* engine, int length) {
+	ENGINE_SCOPE(engine);
+
+	return (void*)(new V8_Value(the_engine, 
+		Array::New(length)
+	));
 }
 
 int V8_ArrayLength(void* value) {
@@ -535,7 +569,19 @@ int V8_ArrayLength(void* value) {
 	return Local<Array>::Cast(local_value)->Length();
 }
 
-char* V8_RegExpGetPattern(void* value) {
+/*
+regexp
+*/
+void* V8_NewRegExp(void* engine, const char* pattern, int length, int flags) {
+	ENGINE_SCOPE(engine);
+
+	return (void*)(new V8_Value(the_engine, RegExp::New(
+		String::NewFromOneByte(isolate, (uint8_t*)pattern, String::kNormalString, length), 
+		(RegExp::Flags)flags
+	)));
+}
+
+char* V8_RegExpPattern(void* value) {
 	VALUE_SCOPE(value);
 
 	Local<String> pattern = Local<RegExp>::Cast(local_value)->GetSource();
@@ -546,10 +592,32 @@ char* V8_RegExpGetPattern(void* value) {
 	return (char*)str;
 }
 
-int V8_RegExpGetFlags(void* value) {
+int V8_RegExpFlags(void* value) {
 	VALUE_SCOPE(value);
 
 	return Local<RegExp>::Cast(local_value)->GetFlags();
+}
+
+/*
+function
+*/
+void* V8_FunctionCall(void* value, int argc, void* argv) {
+	VALUE_SCOPE(value);
+
+	Handle<Value> *real_argv = new Handle<Value>[argc];
+	V8_Value **argv_ptr = (V8_Value**)argv;
+
+	for (int i = 0; i < argc; i ++) {
+		real_argv[i] = Local<Value>::New(isolate, static_cast<V8_Value*>(argv_ptr[i])->self);
+	}
+
+	void* result = (void*)(new V8_Value(the_value->engine, 
+		Local<Function>::Cast(local_value)->Call(local_value, argc, real_argv)
+	));
+
+	delete[] real_argv;
+
+	return result;
 }
 
 } // extern "C"

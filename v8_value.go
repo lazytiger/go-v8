@@ -138,6 +138,13 @@ func (v *Value) ToRegExp() *RegExp {
 	return &RegExp{&Object{v}, "", false, RF_None, false}
 }
 
+func (v *Value) ToFunction() *Function {
+	if v == nil {
+		return nil
+	}
+	return &Function{&Object{v}}
+}
+
 const (
 	isUndefined     = 1 << iota
 	isNull          = 1 << iota

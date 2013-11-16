@@ -2,3 +2,4 @@
 2. cpu profiler
 3. heap profiler
 4. stack trace
+5. test get/set prototype
