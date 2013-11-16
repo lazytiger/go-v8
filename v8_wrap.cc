@@ -679,7 +679,7 @@ void* V8_FunctionCallbackInfo_Holder(void* info) {
 	return (void*)new V8_Value(the_info->engine, the_info->info->Holder());
 }
 
-void V8_FunctionCallbackInfoReturn(void *info, void* result) {
+void V8_FunctionCallbackInfo_Return(void *info, void* result) {
 	V8_FunctionCallbackInfo *the_info = (V8_FunctionCallbackInfo*)info;
 	ENGINE_SCOPE(the_info->engine);
 	the_info->info->GetReturnValue().Set(static_cast<V8_Value*>(result)->self);

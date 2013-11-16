@@ -201,7 +201,7 @@ extern void V8_FunctionCallbackInfo_ReturnUndefined(void *info);
 
 extern void V8_FunctionCallbackInfo_ReturnEmptyString(void *info);
 
-extern void V8_FunctionCallbackInfoReturn(void *info, void* result);
+extern void V8_FunctionCallbackInfo_Return(void *info, void* result);
 
 #ifdef __cplusplus
 } // extern "C"
