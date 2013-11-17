@@ -458,7 +458,7 @@ void* V8_Object_GetElement(void* value, uint32_t index) {
 	));
 }
 
-int V8_Object_GetPropertyAttributes(void *value, const char* key, int key_length) {
+int V8_Object_GetPropertyAttributes(void* value, const char* key, int key_length) {
 	VALUE_SCOPE(value);
 
 	return Local<Object>::Cast(local_value)->GetPropertyAttributes(
@@ -476,7 +476,7 @@ int V8_Object_ForceSetProperty(void* value, const char* key, int key_length, voi
 	);
 }
 
-int V8_Object_HasProperty(void *value, const char* key, int key_length) {
+int V8_Object_HasProperty(void* value, const char* key, int key_length) {
 	VALUE_SCOPE(value);
 
 	return Local<Object>::Cast(local_value)->Has(
@@ -484,7 +484,7 @@ int V8_Object_HasProperty(void *value, const char* key, int key_length) {
 	);
 }
 
-int V8_Object_DeleteProperty(void *value, const char* key, int key_length) {
+int V8_Object_DeleteProperty(void* value, const char* key, int key_length) {
 	VALUE_SCOPE(value);
 
 	return Local<Object>::Cast(local_value)->Delete(
@@ -492,7 +492,7 @@ int V8_Object_DeleteProperty(void *value, const char* key, int key_length) {
 	);
 }
 
-int V8_Object_ForceDeleteProperty(void *value, const char* key, int key_length) {
+int V8_Object_ForceDeleteProperty(void* value, const char* key, int key_length) {
 	VALUE_SCOPE(value);
 
 	return Local<Object>::Cast(local_value)->ForceDelete(
@@ -512,7 +512,7 @@ int V8_Object_DeleteElement(void* value, uint32_t index) {
 	return Local<Object>::Cast(local_value)->Delete(index);
 }
 
-void* V8_Object_GetPropertyNames(void *value) {
+void* V8_Object_GetPropertyNames(void* value) {
 	VALUE_SCOPE(value);
 
 	return (void*)new V8_Value(the_value->engine,
@@ -520,7 +520,7 @@ void* V8_Object_GetPropertyNames(void *value) {
 	);
 }
 
-void* V8_Object_GetOwnPropertyNames(void *value) {
+void* V8_Object_GetOwnPropertyNames(void* value) {
 	VALUE_SCOPE(value);
 
 	return (void*)new V8_Value(the_value->engine,
@@ -528,7 +528,7 @@ void* V8_Object_GetOwnPropertyNames(void *value) {
 	);
 }
 
-void* V8_Object_GetPrototype(void *value) {
+void* V8_Object_GetPrototype(void* value) {
 	VALUE_SCOPE(value);
 
 	return (void*)new V8_Value(the_value->engine,
@@ -536,7 +536,7 @@ void* V8_Object_GetPrototype(void *value) {
 	);
 }
 
-int V8_Object_SetPrototype(void *value, void *proto) {
+int V8_Object_SetPrototype(void* value, void* proto) {
 	VALUE_SCOPE(value);
 
 	return Local<Object>::Cast(local_value)->SetPrototype(
@@ -544,7 +544,7 @@ int V8_Object_SetPrototype(void *value, void *proto) {
 	);
 }
 
-int V8_Object_IsCallable(void *value) {
+int V8_Object_IsCallable(void* value) {
 	VALUE_SCOPE(value);
 
 	return Local<Object>::Cast(local_value)->IsCallable();
@@ -595,12 +595,80 @@ int V8_RegExp_Flags(void* value) {
 }
 
 /*
+return value
+*/
+typedef struct V8_ReturnValue {
+	V8_ReturnValue(V8_Context* the_engine, ReturnValue<Value> the_value) : 
+		engine(the_engine),
+		value(the_value) {
+	}
+
+	V8_Context*        engine;
+	ReturnValue<Value> value;
+} V8_ReturnValue;
+
+void V8_ReturnValue_Set(void* rv, void* result) {
+	V8_ReturnValue* the_rv = (V8_ReturnValue*)rv;
+	ENGINE_SCOPE(the_rv->engine);
+	the_rv->value.Set(static_cast<V8_Value*>(result)->self);
+}
+
+void V8_ReturnValue_SetBoolean(void* rv, int v) {
+	V8_ReturnValue* the_rv = (V8_ReturnValue*)rv;
+	ENGINE_SCOPE(the_rv->engine);
+	the_rv->value.Set((bool)v);
+}
+
+void V8_ReturnValue_SetNumber(void* rv, double v) {
+	V8_ReturnValue* the_rv = (V8_ReturnValue*)rv;
+	ENGINE_SCOPE(the_rv->engine);
+	the_rv->value.Set(v);
+}
+
+void V8_ReturnValue_SetInt32(void* rv, int32_t v) {
+	V8_ReturnValue* the_rv = (V8_ReturnValue*)rv;
+	ENGINE_SCOPE(the_rv->engine);
+	the_rv->value.Set(v);
+}
+
+void V8_ReturnValue_SetUint32(void* rv, uint32_t v) {
+	V8_ReturnValue* the_rv = (V8_ReturnValue*)rv;
+	ENGINE_SCOPE(the_rv->engine);
+	the_rv->value.Set(v);
+}
+
+void V8_ReturnValue_SetString(void* rv, const char* str, int str_length) {
+	V8_ReturnValue* the_rv = (V8_ReturnValue*)rv;
+	ENGINE_SCOPE(the_rv->engine);
+	if (str_length == 0) {
+		the_rv->value.SetEmptyString();
+	} else {
+		the_rv->value.Set(
+			String::NewFromOneByte(isolate, (uint8_t*)str, String::kNormalString, str_length)
+		);
+	}
+}
+
+void V8_ReturnValue_SetNull(void* rv) {
+	V8_ReturnValue* the_rv = (V8_ReturnValue*)rv;
+	ENGINE_SCOPE(the_rv->engine);
+	the_rv->value.SetNull();
+}
+
+void V8_ReturnValue_SetUndefined(void* rv) {
+	V8_ReturnValue* the_rv = (V8_ReturnValue*)rv;
+	ENGINE_SCOPE(the_rv->engine);
+	the_rv->value.SetUndefined();
+}
+
+/*
 function
 */
 typedef struct {
 	void*                              callback;
 	V8_Context*                        engine;
 	const FunctionCallbackInfo<Value>* info;
+	V8_ReturnValue*                    returnValue;
 } V8_FunctionCallbackInfo;
 
 extern void go_function_callback(void* info, void* callback);
@@ -615,6 +683,9 @@ void V8_InnerFunctionCallback(const FunctionCallbackInfo<Value>& info) {
 
 	go_function_callback((void*)myinfo, myinfo->callback);
 
+	if (myinfo->returnValue != NULL)
+		delete myinfo->returnValue;
+
 	delete myinfo;
 }
 
@@ -624,6 +695,7 @@ void* V8_NewFunction(void* engine, void* callback) {
 	V8_FunctionCallbackInfo* info = new V8_FunctionCallbackInfo();
 	info->engine = the_engine;
 	info->callback = callback;
+	info->returnValue = NULL;
 
 	return (void*)(new V8_Value(the_engine,
 		Function::New(isolate, V8_InnerFunctionCallback, External::New(info))
@@ -633,8 +705,8 @@ void* V8_NewFunction(void* engine, void* callback) {
 void* V8_FunctionCall(void* value, int argc, void* argv) {
 	VALUE_SCOPE(value);
 
-	Handle<Value> *real_argv = new Handle<Value>[argc];
-	V8_Value **argv_ptr = (V8_Value**)argv;
+	Handle<Value>* real_argv = new Handle<Value>[argc];
+	V8_Value* *argv_ptr = (V8_Value**)argv;
 
 	for (int i = 0; i < argc; i ++) {
 		real_argv[i] = Local<Value>::New(isolate, static_cast<V8_Value*>(argv_ptr[i])->self);
@@ -650,87 +722,44 @@ void* V8_FunctionCall(void* value, int argc, void* argv) {
 }
 
 void* V8_FunctionCallbackInfo_Get(void* info, int i) {
-	V8_FunctionCallbackInfo *the_info = (V8_FunctionCallbackInfo*)info;
+	V8_FunctionCallbackInfo* the_info = (V8_FunctionCallbackInfo*)info;
 	ENGINE_SCOPE(the_info->engine);
 	return (void*)new V8_Value(the_info->engine, (*(the_info->info))[i]);
 }
 
 int V8_FunctionCallbackInfo_Length(void* info) {
-	V8_FunctionCallbackInfo *the_info = (V8_FunctionCallbackInfo*)info;
+	V8_FunctionCallbackInfo* the_info = (V8_FunctionCallbackInfo*)info;
 	ENGINE_SCOPE(the_info->engine);
 	return the_info->info->Length();
 }
 
 void* V8_FunctionCallbackInfo_Callee(void* info) {
-	V8_FunctionCallbackInfo *the_info = (V8_FunctionCallbackInfo*)info;
+	V8_FunctionCallbackInfo* the_info = (V8_FunctionCallbackInfo*)info;
 	ENGINE_SCOPE(the_info->engine);
 	return (void*)new V8_Value(the_info->engine, the_info->info->Callee());
 }
 
 void* V8_FunctionCallbackInfo_This(void* info) {
-	V8_FunctionCallbackInfo *the_info = (V8_FunctionCallbackInfo*)info;
+	V8_FunctionCallbackInfo* the_info = (V8_FunctionCallbackInfo*)info;
 	ENGINE_SCOPE(the_info->engine);
 	return (void*)new V8_Value(the_info->engine, the_info->info->This());
 }
 
 void* V8_FunctionCallbackInfo_Holder(void* info) {
-	V8_FunctionCallbackInfo *the_info = (V8_FunctionCallbackInfo*)info;
+	V8_FunctionCallbackInfo* the_info = (V8_FunctionCallbackInfo*)info;
 	ENGINE_SCOPE(the_info->engine);
 	return (void*)new V8_Value(the_info->engine, the_info->info->Holder());
 }
 
-void V8_FunctionCallbackInfo_Return(void *info, void* result) {
-	V8_FunctionCallbackInfo *the_info = (V8_FunctionCallbackInfo*)info;
-	ENGINE_SCOPE(the_info->engine);
-	the_info->info->GetReturnValue().Set(static_cast<V8_Value*>(result)->self);
-}
-
-void V8_FunctionCallbackInfo_ReturnBoolean(void* info, int v) {
-	V8_FunctionCallbackInfo *the_info = (V8_FunctionCallbackInfo*)info;
-	ENGINE_SCOPE(the_info->engine);
-	the_info->info->GetReturnValue().Set((bool)v);
-}
-
-void V8_FunctionCallbackInfo_ReturnNumber(void* info, double v) {
-	V8_FunctionCallbackInfo *the_info = (V8_FunctionCallbackInfo*)info;
-	ENGINE_SCOPE(the_info->engine);
-	the_info->info->GetReturnValue().Set(v);
-}
-
-void V8_FunctionCallbackInfo_ReturnInt32(void* info, int32_t v) {
-	V8_FunctionCallbackInfo *the_info = (V8_FunctionCallbackInfo*)info;
-	ENGINE_SCOPE(the_info->engine);
-	the_info->info->GetReturnValue().Set(v);
-}
-
-void V8_FunctionCallbackInfo_ReturnUint32(void* info, uint32_t v) {
-	V8_FunctionCallbackInfo *the_info = (V8_FunctionCallbackInfo*)info;
-	ENGINE_SCOPE(the_info->engine);
-	the_info->info->GetReturnValue().Set(v);
-}
-
-void V8_FunctionCallbackInfo_ReturnString(void* info, const char* str, int str_length) {
-	V8_FunctionCallbackInfo *the_info = (V8_FunctionCallbackInfo*)info;
-	ENGINE_SCOPE(the_info->engine);
-	if (str_length == 0) {
-		the_info->info->GetReturnValue().SetEmptyString();
-	} else {
-		the_info->info->GetReturnValue().Set(
-			String::NewFromOneByte(isolate, (uint8_t*)str, String::kNormalString, str_length)
-		);
+void* V8_FunctionCallbackInfo_ReturnValue(void* info) {
+	V8_FunctionCallbackInfo* the_info = (V8_FunctionCallbackInfo*)info;
+	if (the_info->returnValue == NULL) {
+		the_info->returnValue = new V8_ReturnValue(
+			the_info->engine, 
+			the_info->info->GetReturnValue()
+		);;
 	}
-}
-
-void V8_FunctionCallbackInfo_ReturnNull(void* info) {
-	V8_FunctionCallbackInfo *the_info = (V8_FunctionCallbackInfo*)info;
-	ENGINE_SCOPE(the_info->engine);
-	the_info->info->GetReturnValue().SetNull();
-}
-
-void V8_FunctionCallbackInfo_ReturnUndefined(void *info) {
-	V8_FunctionCallbackInfo *the_info = (V8_FunctionCallbackInfo*)info;
-	ENGINE_SCOPE(the_info->engine);
-	the_info->info->GetReturnValue().SetUndefined();
+	return (void*)the_info->returnValue;
 }
 
 } // extern "C"

@@ -422,7 +422,7 @@ func Test_Function(t *testing.T) {
 		if info.Get(0).ToString() != "Hello World!" {
 			t.Fatal(`info.Get(0).ToString() != "Hello World!"`)
 		}
-		info.ReturnBoolean(true)
+		info.ReturnValue().SetBoolean(true)
 	}).ToFunction().Call(
 		Default.NewString("Hello World!"),
 	).IsTrue() == false {

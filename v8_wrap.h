@@ -171,6 +171,25 @@ extern char* V8_RegExp_Pattern(void* value);
 extern int V8_RegExp_Flags(void* value);
 
 /*
+return value
+*/
+extern void V8_ReturnValue_Set(void* rv, void* result);
+
+extern void V8_ReturnValue_SetBoolean(void* rv, int v);
+
+extern void V8_ReturnValue_SetNumber(void* rv, double v);
+
+extern void V8_ReturnValue_SetInt32(void* rv, int32_t v);
+
+extern void V8_ReturnValue_SetUint32(void* rv, uint32_t v);
+
+extern void V8_ReturnValue_SetString(void* rv, const char* str, int str_length);
+
+extern void V8_ReturnValue_SetNull(void* rv);
+
+extern void V8_ReturnValue_SetUndefined(void* rv);
+
+/*
 function
 */
 extern void* V8_NewFunction(void* engine, void* callback);
@@ -187,21 +206,7 @@ extern void* V8_FunctionCallbackInfo_This(void* info);
 
 extern void* V8_FunctionCallbackInfo_Holder(void* info);
 
-extern void V8_FunctionCallbackInfo_ReturnBoolean(void* info, int v);
-
-extern void V8_FunctionCallbackInfo_ReturnNumber(void* info, double v);
-
-extern void V8_FunctionCallbackInfo_ReturnInt32(void* info, int32_t v);
-
-extern void V8_FunctionCallbackInfo_ReturnUint32(void* info, uint32_t v);
-
-extern void V8_FunctionCallbackInfo_ReturnString(void* info, const char* str, int str_length);
-
-extern void V8_FunctionCallbackInfo_ReturnNull(void* info);
-
-extern void V8_FunctionCallbackInfo_ReturnUndefined(void* info);
-
-extern void V8_FunctionCallbackInfo_Return(void* info, void* result);
+extern void* V8_FunctionCallbackInfo_ReturnValue(void* info);
 
 #ifdef __cplusplus
 } // extern "C"

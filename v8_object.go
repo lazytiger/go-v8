@@ -17,6 +17,27 @@ const (
 	PA_DontDelete                   = 1 << 2
 )
 
+type AccessControl int
+
+// Access control specifications.
+//
+// Some accessors should be accessible across contexts.  These
+// accessors have an explicit access control parameter which specifies
+// the kind of cross-context access that should be allowed.
+//
+// Additionally, for security, accessors can prohibit overwriting by
+// accessors defined in JavaScript.  For objects that have such
+// accessors either locally or in their prototype chain it is not
+// possible to overwrite the accessor by using __defineGetter__ or
+// __defineSetter__ from JavaScript code.
+//
+const (
+	AC_DEFAULT               AccessControl = 0
+	AC_ALL_CAN_READ                        = 1
+	AC_ALL_CAN_WRITE                       = 1 << 1
+	AC_PROHIBITS_OVERWRITING               = 1 << 2
+)
+
 // A JavaScript object (ECMA-262, 4.3.3)
 //
 type Object struct {
@@ -141,6 +162,10 @@ func (o *Object) SetPrototype(proto *Object) bool {
 	return C.V8_Object_SetPrototype(o.self, proto.self) == 1
 }
 
+func (o *Object) SetAccessor(name string, getter func(), setter func(), attribs PropertyAttribute) bool {
+	return false
+}
+
 // An instance of the built-in array constructor (ECMA-262, 15.4.2).
 //
 type Array struct {
@@ -225,7 +250,7 @@ type Function struct {
 //export go_function_callback
 func go_function_callback(info, callback unsafe.Pointer) {
 	callbackFunc := *(*func(FunctionCallbackInfo))(callback)
-	callbackFunc(FunctionCallbackInfo{info})
+	callbackFunc(FunctionCallbackInfo{info, nil})
 }
 
 func (e *Engine) NewFunction(callback func(FunctionCallbackInfo)) *Value {
@@ -245,8 +270,54 @@ func (f *Function) Call(args ...*Value) *Value {
 	))
 }
 
-type FunctionCallbackInfo struct {
+// Function and property return value
+//
+type ReturnValue struct {
 	self unsafe.Pointer
+}
+
+func (rv *ReturnValue) Set(value *Value) {
+	C.V8_ReturnValue_Set(rv.self, value.self)
+}
+
+func (rv *ReturnValue) SetBoolean(value bool) {
+	valueInt := 0
+	if value {
+		valueInt = 1
+	}
+	C.V8_ReturnValue_SetBoolean(rv.self, C.int(valueInt))
+}
+
+func (rv *ReturnValue) SetNumber(value float64) {
+	C.V8_ReturnValue_SetNumber(rv.self, C.double(value))
+}
+
+func (rv *ReturnValue) SetInt32(value int32) {
+	C.V8_ReturnValue_SetInt32(rv.self, C.int32_t(value))
+}
+
+func (rv *ReturnValue) SetUint32(value uint32) {
+	C.V8_ReturnValue_SetUint32(rv.self, C.uint32_t(value))
+}
+
+func (rv *ReturnValue) SetString(value string) {
+	valuePtr := unsafe.Pointer((*reflect.StringHeader)(unsafe.Pointer(&value)).Data)
+	C.V8_ReturnValue_SetString(rv.self, (*C.char)(valuePtr), C.int(len(value)))
+}
+
+func (rv *ReturnValue) SetNull() {
+	C.V8_ReturnValue_SetNull(rv.self)
+}
+
+func (rv *ReturnValue) SetUndefined() {
+	C.V8_ReturnValue_SetUndefined(rv.self)
+}
+
+// Function callback info
+//
+type FunctionCallbackInfo struct {
+	self        unsafe.Pointer
+	returnValue *ReturnValue
 }
 
 func (fc *FunctionCallbackInfo) Get(i int) *Value {
@@ -269,39 +340,9 @@ func (fc *FunctionCallbackInfo) Holder() *Object {
 	return newValue(C.V8_FunctionCallbackInfo_Holder(fc.self)).ToObject()
 }
 
-func (fc *FunctionCallbackInfo) Return(value *Value) {
-	C.V8_FunctionCallbackInfo_Return(fc.self, value.self)
-}
-
-func (fc *FunctionCallbackInfo) ReturnBoolean(value bool) {
-	valueInt := 0
-	if value {
-		valueInt = 1
+func (fc *FunctionCallbackInfo) ReturnValue() *ReturnValue {
+	if fc.returnValue == nil {
+		fc.returnValue = &ReturnValue{C.V8_FunctionCallbackInfo_ReturnValue(fc.self)}
 	}
-	C.V8_FunctionCallbackInfo_ReturnBoolean(fc.self, C.int(valueInt))
-}
-
-func (fc *FunctionCallbackInfo) ReturnNumber(value float64) {
-	C.V8_FunctionCallbackInfo_ReturnNumber(fc.self, C.double(value))
-}
-
-func (fc *FunctionCallbackInfo) ReturnInt32(value int32) {
-	C.V8_FunctionCallbackInfo_ReturnInt32(fc.self, C.int32_t(value))
-}
-
-func (fc *FunctionCallbackInfo) ReturnUint32(value uint32) {
-	C.V8_FunctionCallbackInfo_ReturnUint32(fc.self, C.uint32_t(value))
-}
-
-func (fc *FunctionCallbackInfo) ReturnString(value string) {
-	valuePtr := unsafe.Pointer((*reflect.StringHeader)(unsafe.Pointer(&value)).Data)
-	C.V8_FunctionCallbackInfo_ReturnString(fc.self, (*C.char)(valuePtr), C.int(len(value)))
-}
-
-func (fc *FunctionCallbackInfo) ReturnNull() {
-	C.V8_FunctionCallbackInfo_ReturnNull(fc.self)
-}
-
-func (fc *FunctionCallbackInfo) ReturnUndefined() {
-	C.V8_FunctionCallbackInfo_ReturnUndefined(fc.self)
+	return fc.returnValue
 }
