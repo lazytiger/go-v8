@@ -154,6 +154,18 @@ extern void* V8_Object_GetPrototype(void *value);
 
 extern int V8_Object_SetPrototype(void *value, void *proto);
 
+extern int V8_Object_SetAccessor(void *value, const char* key, int key_length, void* getter, void* setter, int attribs);
+
+extern void* V8_GetterCallbackInfo_This(void *info);
+
+extern void* V8_GetterCallbackInfo_Holder(void *info);
+
+extern void* V8_GetterCallbackInfo_ReturnValue(void *info);
+
+extern void* V8_SetterCallbackInfo_This(void *info);
+
+extern void* V8_SetterCallbackInfo_Holder(void *info);
+
 /*
 array
 */
@@ -194,7 +206,7 @@ function
 */
 extern void* V8_NewFunction(void* engine, void* callback);
 
-extern void* V8_FunctionCall(void* value, int argc, void* argv);
+extern void* V8_Function_Call(void* value, int argc, void* argv);
 
 extern void* V8_FunctionCallbackInfo_Get(void* info, int i);
 

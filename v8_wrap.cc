@@ -83,6 +83,16 @@ public:
 	Persistent<Value> self;
 };
 
+typedef struct V8_ReturnValue {
+	V8_ReturnValue(V8_Context* the_engine, ReturnValue<Value> the_value) : 
+		engine(the_engine),
+		value(the_value) {
+	}
+
+	V8_Context*        engine;
+	ReturnValue<Value> value;
+} V8_ReturnValue;
+
 #define ISOLATE_SCOPE(isolate_ptr) \
 	Isolate* isolate = isolate_ptr; \
 	Locker locker(isolate); \
@@ -550,6 +560,128 @@ int V8_Object_IsCallable(void* value) {
 	return Local<Object>::Cast(local_value)->IsCallable();
 }
 
+typedef struct {
+	V8_Context*                        engine;
+	const PropertyCallbackInfo<Value>* getter_info;
+	const PropertyCallbackInfo<void>*  setter_info;
+	V8_ReturnValue*                    returnValue;
+} V8_AccessorCallbackInfo;
+
+extern void go_getter_callback(char* key, int key_length, void* info, void* callback);
+extern void go_setter_callback(char* key, int key_length, void* value, void* info, void* callback);
+
+void V8_GetterCallback(Local<String> property, const PropertyCallbackInfo<Value>& info) {
+	v8::Isolate* isolate = v8::Isolate::GetCurrent();
+	HandleScope handle_scope(isolate);
+
+	Local<Array> callback_data = Local<Array>::Cast(info.Data());
+
+	V8_AccessorCallbackInfo callback_info;
+	callback_info.engine = (V8_Context*)Local<External>::Cast(callback_data->Get(0))->Value();
+	callback_info.getter_info = &info;
+	callback_info.setter_info = NULL;
+	callback_info.returnValue = NULL;
+
+	void* callback = Local<External>::Cast(callback_data->Get(1))->Value();
+
+	void* key = Local<External>::Cast(callback_data->Get(3))->Value();
+
+	int key_length = Local<Integer>::Cast(callback_data->Get(4))->Value();
+
+	go_getter_callback(
+		(char*)key, key_length,
+		&callback_info, 
+		callback
+	);
+
+	if (callback_info.returnValue != NULL)
+		delete callback_info.returnValue;
+}
+
+void V8_SetterCallback(Local<String> property, Local<Value> value, const PropertyCallbackInfo<void>& info) {
+	v8::Isolate* isolate = v8::Isolate::GetCurrent();
+	HandleScope handle_scope(isolate);
+
+	Local<Array> callback_data = Local<Array>::Cast(info.Data());
+
+	V8_AccessorCallbackInfo callback_info;
+	callback_info.engine = (V8_Context*)Local<External>::Cast(callback_data->Get(0))->Value();
+	callback_info.getter_info = NULL;
+	callback_info.setter_info = &info;
+	callback_info.returnValue = NULL;
+
+	void* callback = Local<External>::Cast(callback_data->Get(2))->Value();
+
+	void* key = Local<External>::Cast(callback_data->Get(3))->Value();
+
+	int key_length = Local<Integer>::Cast(callback_data->Get(4))->Value();
+
+	go_setter_callback(
+		(char*)key, key_length,
+		(void*)new V8_Value(callback_info.engine, value), 
+		&callback_info, 
+		callback
+	);
+
+	if (callback_info.returnValue != NULL)
+		delete callback_info.returnValue;
+}
+
+int V8_Object_SetAccessor(void *value, const char* key, int key_length, void* getter, void* setter, int attribs) {
+	VALUE_SCOPE(value);
+
+	Handle<Array> callback_info = Array::New(3);
+	callback_info->Set(0, External::New((void*)the_value->engine));
+	callback_info->Set(1, External::New(getter));
+	callback_info->Set(2, External::New(setter));
+	callback_info->Set(3, External::New((void*)key));
+	callback_info->Set(4, Integer::New(key_length));
+
+	if (callback_info.IsEmpty())
+		return 0;
+
+	return Local<Object>::Cast(local_value)->SetAccessor(
+		String::NewFromOneByte(isolate, (uint8_t*)key, String::kNormalString, key_length),
+		V8_GetterCallback, setter == NULL ? NULL : V8_SetterCallback,
+ 		callback_info
+	);
+}
+
+void* V8_GetterCallbackInfo_This(void *info) {
+	V8_AccessorCallbackInfo* the_info = (V8_AccessorCallbackInfo*)info;
+	ENGINE_SCOPE(the_info->engine);
+	return (void*)new V8_Value(the_info->engine, the_info->getter_info->This());
+}
+
+void* V8_GetterCallbackInfo_Holder(void *info) {
+	V8_AccessorCallbackInfo* the_info = (V8_AccessorCallbackInfo*)info;
+	ENGINE_SCOPE(the_info->engine);
+	return (void*)new V8_Value(the_info->engine, the_info->getter_info->Holder());
+}
+
+void* V8_GetterCallbackInfo_ReturnValue(void *info) {
+	V8_AccessorCallbackInfo* the_info = (V8_AccessorCallbackInfo*)info;
+	if (the_info->returnValue == NULL) {
+		the_info->returnValue = new V8_ReturnValue(
+			the_info->engine, 
+			the_info->getter_info->GetReturnValue()
+		);;
+	}
+	return (void*)the_info->returnValue;
+}
+
+void* V8_SetterCallbackInfo_This(void *info) {
+	V8_AccessorCallbackInfo* the_info = (V8_AccessorCallbackInfo*)info;
+	ENGINE_SCOPE(the_info->engine);
+	return (void*)new V8_Value(the_info->engine, the_info->setter_info->This());
+}
+
+void* V8_SetterCallbackInfo_Holder(void *info) {
+	V8_AccessorCallbackInfo* the_info = (V8_AccessorCallbackInfo*)info;
+	ENGINE_SCOPE(the_info->engine);
+	return (void*)new V8_Value(the_info->engine, the_info->setter_info->Holder());
+}
+
 /*
 array
 */
@@ -597,16 +729,6 @@ int V8_RegExp_Flags(void* value) {
 /*
 return value
 */
-typedef struct V8_ReturnValue {
-	V8_ReturnValue(V8_Context* the_engine, ReturnValue<Value> the_value) : 
-		engine(the_engine),
-		value(the_value) {
-	}
-
-	V8_Context*        engine;
-	ReturnValue<Value> value;
-} V8_ReturnValue;
-
 void V8_ReturnValue_Set(void* rv, void* result) {
 	V8_ReturnValue* the_rv = (V8_ReturnValue*)rv;
 	ENGINE_SCOPE(the_rv->engine);
@@ -665,7 +787,6 @@ void V8_ReturnValue_SetUndefined(void* rv) {
 function
 */
 typedef struct {
-	void*                              callback;
 	V8_Context*                        engine;
 	const FunctionCallbackInfo<Value>* info;
 	V8_ReturnValue*                    returnValue;
@@ -673,36 +794,42 @@ typedef struct {
 
 extern void go_function_callback(void* info, void* callback);
 
-void V8_InnerFunctionCallback(const FunctionCallbackInfo<Value>& info) {
+void V8_FunctionCallback(const FunctionCallbackInfo<Value>& info) {
 	v8::Isolate* isolate = v8::Isolate::GetCurrent();
 	HandleScope handle_scope(isolate);
 
-	V8_FunctionCallbackInfo* myinfo = (V8_FunctionCallbackInfo*)Local<External>::Cast(info.Data())->Value();
+	Local<Array> callback_data = Local<Array>::Cast(info.Data());
 
-	myinfo->info = &info;
+	V8_FunctionCallbackInfo callback_info;
+	callback_info.engine = (V8_Context*)Local<External>::Cast(callback_data->Get(0))->Value();
+	callback_info.info = &info;
+	callback_info.returnValue = NULL;
 
-	go_function_callback((void*)myinfo, myinfo->callback);
+	void* callback = Local<External>::Cast(callback_data->Get(1))->Value();
 
-	if (myinfo->returnValue != NULL)
-		delete myinfo->returnValue;
+	go_function_callback(&callback_info, callback);
 
-	delete myinfo;
+	if (callback_info.returnValue != NULL)
+		delete callback_info.returnValue;
 }
 
 void* V8_NewFunction(void* engine, void* callback) {
 	ENGINE_SCOPE(engine);
 
-	V8_FunctionCallbackInfo* info = new V8_FunctionCallbackInfo();
-	info->engine = the_engine;
-	info->callback = callback;
-	info->returnValue = NULL;
+	Handle<Array> callback_data = Array::New(2);
+
+	if (callback_data.IsEmpty())
+		return NULL;
+
+	callback_data->Set(0, External::New(engine));
+	callback_data->Set(1, External::New(callback));
 
 	return (void*)(new V8_Value(the_engine,
-		Function::New(isolate, V8_InnerFunctionCallback, External::New(info))
+		Function::New(isolate, V8_FunctionCallback, callback_data)
 	));
 }
 
-void* V8_FunctionCall(void* value, int argc, void* argv) {
+void* V8_Function_Call(void* value, int argc, void* argv) {
 	VALUE_SCOPE(value);
 
 	Handle<Value>* real_argv = new Handle<Value>[argc];

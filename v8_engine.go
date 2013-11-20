@@ -12,11 +12,15 @@ var traceDispose = false
 // Represents an isolated instance of the V8 engine.
 // Objects from one engine must not be used in other engine.
 type Engine struct {
-	self       unsafe.Pointer
-	_undefined *Value
-	_null      *Value
-	_true      *Value
-	_false     *Value
+	self             unsafe.Pointer
+	_undefined       *Value
+	_null            *Value
+	_true            *Value
+	_false           *Value
+	funcTemplateId   int
+	funcTemplates    map[int]*FunctionTemplate
+	objectTemplateId int
+	objectTemplates  map[int]*ObjectTemplate
 }
 
 func NewEngine() *Engine {
@@ -27,14 +31,16 @@ func NewEngine() *Engine {
 	}
 
 	result := &Engine{
-		self: self,
+		self:            self,
+		funcTemplates:   make(map[int]*FunctionTemplate),
+		objectTemplates: make(map[int]*ObjectTemplate),
 	}
 
-	runtime.SetFinalizer(result, func(i *Engine) {
+	runtime.SetFinalizer(result, func(e *Engine) {
 		if traceDispose {
-			println("v8.Engine.Dispose()")
+			println("v8.Engine.Dispose()", e.self)
 		}
-		C.V8_DisposeEngine(i.self)
+		C.V8_DisposeEngine(e.self)
 	})
 
 	return result

@@ -339,6 +339,38 @@ func Test_Object(t *testing.T) {
 		t.Fatal(`names.GetElement(2).ToString() != "z"`)
 	}
 
+	// Test SetAccessor
+	var propertyValue int32 = 1234
+
+	template := Default.NewObjectTemplate()
+
+	template.SetAccessor(
+		"abc",
+		func(name string, info GetterCallbackInfo) {
+			info.ReturnValue().SetInt32(propertyValue)
+		},
+		func(name string, value *Value, info SetterCallbackInfo) {
+			propertyValue = value.ToInt32()
+		},
+		PA_None,
+	)
+
+	object = template.NewObject().ToObject()
+
+	if object.GetProperty("abc").ToInt32() != 1234 {
+		t.Fatal(`object.GetProperty("abc").ToInt32() != 1234`)
+	}
+
+	object.SetProperty("abc", Default.NewInteger(5678), PA_None)
+
+	if propertyValue != 5678 {
+		t.Fatal(`propertyValue != 5678`)
+	}
+
+	if object.GetProperty("abc").ToInt32() != 5678 {
+		t.Fatal(`object.GetProperty("abc").ToInt32() != 5678`)
+	}
+
 	runtime.GC()
 }
 
@@ -418,12 +450,14 @@ func Test_Function(t *testing.T) {
 		t.Fatal("result != 6")
 	}
 
-	if Default.NewFunction(func(info FunctionCallbackInfo) {
+	function := Default.NewFunctionTemplate(func(info FunctionCallbackInfo) {
 		if info.Get(0).ToString() != "Hello World!" {
 			t.Fatal(`info.Get(0).ToString() != "Hello World!"`)
 		}
 		info.ReturnValue().SetBoolean(true)
-	}).ToFunction().Call(
+	}).NewFunction()
+
+	if function.ToFunction().Call(
 		Default.NewString("Hello World!"),
 	).IsTrue() == false {
 		t.Fatal("callback return not match")
@@ -818,8 +852,8 @@ func Benchmark_RunScript(b *testing.B) {
 	b.StartTimer()
 }
 
-func Benchmark_FunctionCall(b *testing.B) {
-	b.StartTimer()
+func Benchmark_JsFunction(b *testing.B) {
+	b.StopTimer()
 	script := Default.Compile([]byte(`
 		a = function(){ 
 			return 1; 
@@ -831,6 +865,85 @@ func Benchmark_FunctionCall(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		value.ToFunction().Call()
+	}
+
+	b.StopTimer()
+	runtime.GC()
+	b.StartTimer()
+}
+
+func Benchmark_GoFunction(b *testing.B) {
+	b.StopTimer()
+	value := Default.NewFunctionTemplate(func(info FunctionCallbackInfo) {
+		info.ReturnValue().SetInt32(123)
+	}).NewFunction()
+	function := value.ToFunction()
+	b.StartTimer()
+
+	for i := 0; i < b.N; i++ {
+		function.Call()
+	}
+
+	b.StopTimer()
+	runtime.GC()
+	b.StartTimer()
+}
+
+func Benchmark_Getter(b *testing.B) {
+	b.StopTimer()
+
+	var propertyValue int32 = 1234
+
+	template := Default.NewObjectTemplate()
+
+	template.SetAccessor(
+		"abc",
+		func(name string, info GetterCallbackInfo) {
+			info.ReturnValue().SetInt32(propertyValue)
+		},
+		func(name string, value *Value, info SetterCallbackInfo) {
+			propertyValue = value.ToInt32()
+		},
+		PA_None,
+	)
+
+	object := template.NewObject().ToObject()
+
+	b.StartTimer()
+
+	for i := 0; i < b.N; i++ {
+		object.GetProperty("abc")
+	}
+
+	b.StopTimer()
+	runtime.GC()
+	b.StartTimer()
+}
+
+func Benchmark_Setter(b *testing.B) {
+	b.StopTimer()
+
+	var propertyValue int32 = 1234
+
+	template := Default.NewObjectTemplate()
+
+	template.SetAccessor(
+		"abc",
+		func(name string, info GetterCallbackInfo) {
+			info.ReturnValue().SetInt32(propertyValue)
+		},
+		func(name string, value *Value, info SetterCallbackInfo) {
+			propertyValue = value.ToInt32()
+		},
+		PA_None,
+	)
+
+	object := template.NewObject().ToObject()
+
+	b.StartTimer()
+
+	for i := 0; i < b.N; i++ {
+		object.SetProperty("abc", Default.NewInteger(5678), PA_None)
 	}
 
 	b.StopTimer()

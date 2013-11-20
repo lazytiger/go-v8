@@ -53,7 +53,7 @@ func (e *Engine) Compile(code []byte, origin *ScriptOrigin, data *ScriptData) *S
 
 	runtime.SetFinalizer(result, func(s *Script) {
 		if traceDispose {
-			println("v8.Script.Dispose()")
+			println("v8.Script.Dispose()", s.self)
 		}
 		C.V8_DisposeScript(s.self)
 	})

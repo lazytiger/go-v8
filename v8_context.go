@@ -28,7 +28,7 @@ func (e *Engine) NewContext() *Context {
 
 	runtime.SetFinalizer(result, func(c *Context) {
 		if traceDispose {
-			println("v8.Context.Dispose()")
+			println("v8.Context.Dispose()", c.self)
 		}
 		C.V8_DisposeContext(c.self)
 	})
