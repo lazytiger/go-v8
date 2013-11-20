@@ -6,8 +6,7 @@ package v8
 */
 import "C"
 import "unsafe"
-
-//import "runtime"
+import "runtime"
 import "reflect"
 
 // The superclass of all JavaScript values and objects.
@@ -26,14 +25,14 @@ func newValue(self unsafe.Pointer) *Value {
 	result := &Value{
 		self: self,
 	}
-	/*
-		runtime.SetFinalizer(result, func(v *Value) {
-			if traceDispose {
-				println("v8.Value.Dispose()", v.self)
-			}
-			C.V8_DisposeValue(v.self)
-		})
-	*/
+
+	runtime.SetFinalizer(result, func(v *Value) {
+		if traceDispose {
+			println("v8.Value.Dispose()", v.self)
+		}
+		C.V8_DisposeValue(v.self)
+	})
+
 	return result
 }
 
