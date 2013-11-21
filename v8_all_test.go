@@ -72,9 +72,17 @@ func Test_PreCompile(t *testing.T) {
 	code := []byte("'Hello ' + 'PreCompile!'")
 	scriptData1 := Default.PreCompile(code)
 
+	if scriptData1 == nil {
+		t.Fatal("precompile failed")
+	}
+
 	// test save and load script data
 	data := scriptData1.Data()
 	scriptData2 := NewScriptData(data)
+
+	if scriptData1 == nil {
+		t.Fatal("load precompile data failed")
+	}
 
 	// test compile with script data
 	script := Default.Compile(code, nil, scriptData2)
@@ -506,10 +514,6 @@ func Test_ObjectTemplate(t *testing.T) {
 	}
 }
 
-func Test_ErrorHandle(t *testing.T) {
-	Default.Compile([]byte("a .. b"), nil, nil)
-}
-
 func Test_UnderscoreJS(t *testing.T) {
 	code, err := ioutil.ReadFile("labs/underscore.js")
 
@@ -824,11 +828,12 @@ func Benchmark_NewArray100(b *testing.B) {
 }
 
 func Benchmark_Compile(b *testing.B) {
+	b.StopTimer()
 	code, err := ioutil.ReadFile("labs/underscore.js")
-
 	if err != nil {
 		return
 	}
+	b.StartTimer()
 
 	for i := 0; i < b.N; i++ {
 		Default.Compile(code, nil, nil)
@@ -840,13 +845,11 @@ func Benchmark_Compile(b *testing.B) {
 }
 
 func Benchmark_PreCompile(b *testing.B) {
+	b.StopTimer()
 	code, err := ioutil.ReadFile("labs/underscore.js")
-
 	if err != nil {
 		return
 	}
-
-	b.StopTimer()
 	scriptData := Default.PreCompile(code)
 	b.StartTimer()
 
