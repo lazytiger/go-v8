@@ -14,8 +14,8 @@ public:
 		self.Reset(isolate_, context);
 	}
 
-	V8_Context(V8_Context* ownerEngine, Handle<Context> context) {
-		engine = ownerEngine;
+	V8_Context(V8_Context* the_engine, Handle<Context> context) {
+		engine = the_engine;
 		isolate_ = engine->GetIsolate();
 		self.Reset(isolate_, context);
 	}
@@ -39,8 +39,8 @@ public:
 
 class V8_Script {
 public:
-	V8_Script(V8_Context* ownerEngine, Handle<Script> script) {
-		engine = ownerEngine;
+	V8_Script(V8_Context* the_engine, Handle<Script> script) {
+		engine = the_engine;
 		self.Reset(engine->GetIsolate(), script);
 	}
 
@@ -62,8 +62,8 @@ public:
 
 class V8_Value {
 public:
-	V8_Value(V8_Context* ownerEngine, Handle<Value> value) {
-		engine = ownerEngine;
+	V8_Value(V8_Context* the_engine, Handle<Value> value) {
+		engine = the_engine;
 		self.Reset(engine->GetIsolate(), value);
 	}
 
@@ -93,6 +93,52 @@ typedef struct V8_ReturnValue {
 	ReturnValue<Value> value;
 } V8_ReturnValue;
 
+class V8_ObjectTemplate {
+public:
+	V8_ObjectTemplate(V8_Context* the_engine, Handle<ObjectTemplate> the_template) {
+		engine = the_engine;
+		self.Reset(engine->GetIsolate(), the_template);
+	}
+
+	~V8_ObjectTemplate() {
+		Locker locker(GetIsolate());
+		Isolate::Scope isolate_scope(GetIsolate());
+
+		self.Dispose();
+		self.Reset();
+	}
+
+	Isolate* GetIsolate() {
+		return engine->GetIsolate();
+	}
+
+	V8_Context* engine;
+	Persistent<ObjectTemplate> self;
+};
+
+class V8_FunctionTemplate {
+public:
+	V8_FunctionTemplate(V8_Context* the_engine, Handle<FunctionTemplate> the_template) {
+		engine = the_engine;
+		self.Reset(engine->GetIsolate(), the_template);
+	}
+
+	~V8_FunctionTemplate() {
+		Locker locker(GetIsolate());
+		Isolate::Scope isolate_scope(GetIsolate());
+
+		self.Dispose();
+		self.Reset();
+	}
+
+	Isolate* GetIsolate() {
+		return engine->GetIsolate();
+	}
+
+	V8_Context* engine;
+	Persistent<FunctionTemplate> self;
+};
+
 #define ISOLATE_SCOPE(isolate_ptr) \
 	Isolate* isolate = isolate_ptr; \
 	Locker locker(isolate); \
@@ -111,6 +157,20 @@ typedef struct V8_ReturnValue {
 	Local<Context> context = Local<Context>::New(isolate, the_value->engine->self); \
 	Context::Scope context_scope(context); \
 	Local<Value> local_value = Local<Value>::New(isolate, the_value->self) \
+
+#define OBJECT_TEMPLATE_SCOPE(tpl) \
+	V8_ObjectTemplate* the_template = static_cast<V8_ObjectTemplate*>(tpl); \
+	ISOLATE_SCOPE(the_template->GetIsolate()); \
+	Local<Context> context = Local<Context>::New(isolate, the_template->engine->self); \
+	Context::Scope context_scope(context); \
+	Local<ObjectTemplate> local_template = Local<ObjectTemplate>::New(isolate, the_template->self) \
+
+#define FUNCTION_TEMPLATE_SCOPE(tpl) \
+	V8_FunctionTemplate* the_template = static_cast<V8_FunctionTemplate*>(tpl); \
+	ISOLATE_SCOPE(the_template->GetIsolate()); \
+	Local<Context> context = Local<Context>::New(isolate, the_template->engine->self); \
+	Context::Scope context_scope(context); \
+	Local<FunctionTemplate> local_template = Local<FunctionTemplate>::New(isolate, the_template->self) \
 
 /*
 engine
@@ -813,22 +873,6 @@ void V8_FunctionCallback(const FunctionCallbackInfo<Value>& info) {
 		delete callback_info.returnValue;
 }
 
-void* V8_NewFunction(void* engine, void* callback) {
-	ENGINE_SCOPE(engine);
-
-	Handle<Array> callback_data = Array::New(2);
-
-	if (callback_data.IsEmpty())
-		return NULL;
-
-	callback_data->Set(0, External::New(engine));
-	callback_data->Set(1, External::New(callback));
-
-	return (void*)(new V8_Value(the_engine,
-		Function::New(isolate, V8_FunctionCallback, callback_data)
-	));
-}
-
 void* V8_Function_Call(void* value, int argc, void* argv) {
 	VALUE_SCOPE(value);
 
@@ -887,6 +931,81 @@ void* V8_FunctionCallbackInfo_ReturnValue(void* info) {
 		);;
 	}
 	return (void*)the_info->returnValue;
+}
+
+/*
+object template
+*/
+void* V8_NewObjectTemplate(void* engine) {
+	ENGINE_SCOPE(engine);
+	return (void*)new V8_ObjectTemplate(the_engine, ObjectTemplate::New());
+}
+
+void V8_DisposeObjectTemplate(void* tpl) {
+	delete static_cast<V8_ObjectTemplate*>(tpl);
+}
+
+void V8_ObjectTemplate_SetProperty(void* tpl, const char* key, int key_length, void* prop_value, int attribs) {
+	OBJECT_TEMPLATE_SCOPE(tpl);
+
+	local_template->Set(
+		String::NewFromOneByte(isolate, (uint8_t*)key, String::kNormalString, key_length),
+		Local<Value>::New(isolate, static_cast<V8_Value*>(prop_value)->self),
+		(v8::PropertyAttribute)attribs
+	);
+}
+
+void* V8_ObjectTemplate_NewObject(void* tpl) {
+	OBJECT_TEMPLATE_SCOPE(tpl);
+	return (void*)new V8_Value(the_template->engine, local_template->NewInstance());
+}
+
+void V8_ObjectTemplate_SetAccessor(void *tpl, const char* key, int key_length, void* getter, void* setter, int attribs) {
+	OBJECT_TEMPLATE_SCOPE(tpl);
+
+	Handle<Array> callback_info = Array::New(3);
+	callback_info->Set(0, External::New((void*)the_template->engine));
+	callback_info->Set(1, External::New(getter));
+	callback_info->Set(2, External::New(setter));
+	callback_info->Set(3, External::New((void*)key));
+	callback_info->Set(4, Integer::New(key_length));
+
+	if (callback_info.IsEmpty())
+		return;
+
+	local_template->SetAccessor(
+		String::NewFromOneByte(isolate, (uint8_t*)key, String::kNormalString, key_length),
+		V8_GetterCallback, setter == NULL ? NULL : V8_SetterCallback,
+ 		callback_info
+	);
+}
+
+/*
+function template
+*/
+void* V8_NewFunctionTemplate(void* engine, void* callback) {
+	ENGINE_SCOPE(engine);
+
+	Handle<Array> callback_data = Array::New(2);
+
+	if (callback_data.IsEmpty())
+		return NULL;
+
+	callback_data->Set(0, External::New(engine));
+	callback_data->Set(1, External::New(callback));
+
+	return (void*)new V8_FunctionTemplate(the_engine, FunctionTemplate::New(
+		V8_FunctionCallback, callback_data
+	));
+}
+
+void V8_DisposeFunctionTemplate(void* tpl) {
+	delete static_cast<V8_FunctionTemplate*>(tpl);
+}
+
+void* V8_FunctionTemplate_GetFunction(void* tpl) {
+	FUNCTION_TEMPLATE_SCOPE(tpl);
+	return (void*)new V8_Value(the_template->engine, local_template->GetFunction());
 }
 
 } // extern "C"

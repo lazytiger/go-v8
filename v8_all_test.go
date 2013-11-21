@@ -339,38 +339,6 @@ func Test_Object(t *testing.T) {
 		t.Fatal(`names.GetElement(2).ToString() != "z"`)
 	}
 
-	// Test SetAccessor
-	var propertyValue int32 = 1234
-
-	template := Default.NewObjectTemplate()
-
-	template.SetAccessor(
-		"abc",
-		func(name string, info GetterCallbackInfo) {
-			info.ReturnValue().SetInt32(propertyValue)
-		},
-		func(name string, value *Value, info SetterCallbackInfo) {
-			propertyValue = value.ToInt32()
-		},
-		PA_None,
-	)
-
-	object = template.NewObject().ToObject()
-
-	if object.GetProperty("abc").ToInt32() != 1234 {
-		t.Fatal(`object.GetProperty("abc").ToInt32() != 1234`)
-	}
-
-	object.SetProperty("abc", Default.NewInteger(5678), PA_None)
-
-	if propertyValue != 5678 {
-		t.Fatal(`propertyValue != 5678`)
-	}
-
-	if object.GetProperty("abc").ToInt32() != 5678 {
-		t.Fatal(`object.GetProperty("abc").ToInt32() != 5678`)
-	}
-
 	runtime.GC()
 }
 
@@ -486,6 +454,60 @@ func Test_Context(t *testing.T) {
 	if script2.Run(context2).ToInteger() != 8 {
 		t.Fatal(`script1.Run(context2).ToInteger() != 8`)
 	}
+}
+
+func Test_ObjectTemplate(t *testing.T) {
+	var propertyValue int32
+
+	template := Default.NewObjectTemplate()
+
+	template.SetAccessor(
+		"abc",
+		func(name string, info GetterCallbackInfo) {
+			info.ReturnValue().SetInt32(propertyValue)
+		},
+		func(name string, value *Value, info SetterCallbackInfo) {
+			propertyValue = value.ToInt32()
+		},
+		PA_None,
+	)
+
+	template.SetProperty("def", Default.NewInteger(8888), PA_None)
+
+	// New
+	value := template.NewObject()
+
+	for i := 0; i < 2; i++ {
+		propertyValue = 1234
+
+		object := value.ToObject()
+
+		if object.GetProperty("abc").ToInt32() != 1234 {
+			t.Fatal(`object.GetProperty("abc").ToInt32() != 1234`)
+		}
+
+		object.SetProperty("abc", Default.NewInteger(5678), PA_None)
+
+		if propertyValue != 5678 {
+			t.Fatal(`propertyValue != 5678`)
+		}
+
+		if object.GetProperty("abc").ToInt32() != 5678 {
+			t.Fatal(`object.GetProperty("abc").ToInt32() != 5678`)
+		}
+
+		if object.GetProperty("def").ToInt32() != 8888 {
+			t.Fatal(`object.GetProperty("def").ToInt32() != 8888`)
+		}
+
+		// Wrap and test again
+		value = Default.NewObject()
+		template.WrapObject(value)
+	}
+}
+
+func Test_ErrorHandle(t *testing.T) {
+	Default.Compile([]byte("a .. b"), nil, nil)
 }
 
 func Test_UnderscoreJS(t *testing.T) {

@@ -204,8 +204,6 @@ extern void V8_ReturnValue_SetUndefined(void* rv);
 /*
 function
 */
-extern void* V8_NewFunction(void* engine, void* callback);
-
 extern void* V8_Function_Call(void* value, int argc, void* argv);
 
 extern void* V8_FunctionCallbackInfo_Get(void* info, int i);
@@ -219,6 +217,28 @@ extern void* V8_FunctionCallbackInfo_This(void* info);
 extern void* V8_FunctionCallbackInfo_Holder(void* info);
 
 extern void* V8_FunctionCallbackInfo_ReturnValue(void* info);
+
+/*
+object template
+*/
+extern void* V8_NewObjectTemplate(void* engine);
+
+extern void V8_DisposeObjectTemplate(void* tpl);
+
+extern void V8_ObjectTemplate_SetProperty(void* tpl, const char* key, int key_length, void* prop_value, int attribs);
+
+extern void* V8_ObjectTemplate_NewObject(void* tpl);
+
+extern void V8_ObjectTemplate_SetAccessor(void *tpl, const char* key, int key_length, void* getter, void* setter, int attribs);
+
+/*
+function template
+*/
+extern void* V8_NewFunctionTemplate(void* engine, void* callback);
+
+extern void V8_DisposeFunctionTemplate(void* tpl);
+
+extern void* V8_FunctionTemplate_GetFunction(void* tpl);
 
 #ifdef __cplusplus
 } // extern "C"
