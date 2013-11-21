@@ -21,18 +21,12 @@ git pull origin master
 ./install.sh
 ```
 
-Tools
-=====
+Stability and Performance
+=========================
 
-There is a shell script named 'install.sh'. It can auto download and compile v8 engine.
+There is a shell script named 'test.sh' in the project. 
 
-For example:
-
-```
-./install.sh
-```
-
-And there is a shell script named 'test.sh'. It can auto configure cgo environment variable and run go-v8 test.
+It can auto configure cgo environment variable and run go-v8 test.
 
 For example:
 
@@ -50,9 +44,7 @@ For example:
 
 The command above will run test without benchmark.
 
-
-Stability and Performance
-=========================
+Below is the test and benchmark result on my iMac:
 
 ```
 === RUN Test_HelloWorld
