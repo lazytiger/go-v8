@@ -2,6 +2,7 @@ package v8
 
 /*
 #include "v8_wrap.h"
+#include <stdlib.h>
 */
 import "C"
 import "unsafe"
@@ -44,4 +45,19 @@ func NewEngine() *Engine {
 	})
 
 	return result
+}
+
+//export try_catch_callback
+func try_catch_callback(callback unsafe.Pointer) {
+	(*(*func())(callback))()
+}
+
+func (e *Engine) TryCatch(callback func()) string {
+	creport := C.V8_TryCatch(e.self, unsafe.Pointer(&callback))
+	if creport == nil {
+		return ""
+	}
+	report := C.GoString(creport)
+	C.free(unsafe.Pointer(creport))
+	return report
 }

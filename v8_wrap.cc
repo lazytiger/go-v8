@@ -1,5 +1,9 @@
-#include <stdlib.h>
-#include <stdint.h>
+#include <cstdlib>
+#include <cstdint>
+#include <cstring>
+#include <sstream>
+#include <iostream>
+#include <string>
 #include "v8.h"
 #include "v8_wrap.h"
 
@@ -204,6 +208,73 @@ void* V8_ParseJSON(void* engine, const char* json, int json_length) {
 		return NULL;
 
 	return (void*)(new V8_Value(the_engine, value));
+}
+
+extern void try_catch_callback(void* callback);
+
+// Extracts a C string from a V8 Utf8Value.
+const char* ToCString(const v8::String::Utf8Value& value) {
+  return *value ? *value : "<string conversion failed>";
+}
+
+char* V8_TryCatch(void* engine, void* callback) {
+	ENGINE_SCOPE(engine);
+
+	v8::TryCatch try_catch;
+
+	try_catch_callback(callback);
+
+	if (!try_catch.HasCaught()) {
+		return NULL;
+	}
+
+	std::stringstream report;
+
+	v8::String::Utf8Value exception(try_catch.Exception());
+	const char* exception_string = ToCString(exception);
+	v8::Handle<v8::Message> message = try_catch.Message();
+
+	if (message.IsEmpty()) {
+		// V8 didn't provide any extra information about this error; just
+		// print the exception.
+		report << exception_string << std::endl;
+	} else {
+		// Print (filename):(line number): (message).
+		v8::String::Utf8Value filename(message->GetScriptResourceName());
+		const char* filename_string = ToCString(filename);
+		int linenum = message->GetLineNumber();
+		report << filename_string << ":" << linenum << ": " << exception_string << std::endl;
+
+		// Print line of source code.
+		v8::String::Utf8Value sourceline(message->GetSourceLine());
+		const char* sourceline_string = ToCString(sourceline);
+		report << sourceline_string << std::endl;
+
+		// Print wavy underline (GetUnderline is deprecated).
+		int start = message->GetStartColumn();
+		for (int i = 0; i < start; i++) {
+			report << " ";
+		}
+
+		int end = message->GetEndColumn();
+		for (int i = start; i < end; i++) {
+			report << "^";
+		}
+
+		report << std::endl;
+
+		v8::String::Utf8Value stack_trace(try_catch.StackTrace());
+		if (stack_trace.length() > 0) {
+			const char* stack_trace_string = ToCString(stack_trace);
+			report << stack_trace_string << std::endl;
+		}
+	}
+
+	std::string report_string = report.str();
+	char *cstr = (char*)malloc(report_string.length() +1);
+	std::strcpy(cstr, report_string.c_str());
+
+	return cstr;
 }
 
 /*

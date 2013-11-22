@@ -612,6 +612,12 @@ func Test_JSON(t *testing.T) {
 	}
 }
 
+func Test_TryCatch(t *testing.T) {
+	Default.TryCatch(func() {
+		Default.Compile([]byte("a[=1"), nil, nil)
+	})
+}
+
 func rand_sched(max int) {
 	for j := rand.Intn(max); j > 0; j-- {
 		runtime.Gosched()
@@ -1042,4 +1048,12 @@ func Benchmark_Setter(b *testing.B) {
 	b.StopTimer()
 	runtime.GC()
 	b.StartTimer()
+}
+
+func Benchmark_TryCatch(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		Default.TryCatch(func() {
+			Default.Compile([]byte("a[=1"), nil, nil)
+		})
+	}
 }
