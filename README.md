@@ -65,6 +65,8 @@ Below is the test and benchmark result on my iMac:
 --- PASS: Test_ObjectTemplate (0.00 seconds)
 === RUN Test_UnderscoreJS
 --- PASS: Test_UnderscoreJS (0.01 seconds)
+=== RUN Test_ParseJSON
+--- PASS: Test_ParseJSON (0.00 seconds)
 === RUN Test_ThreadSafe1
 --- PASS: Test_ThreadSafe1 (0.05 seconds)
 === RUN Test_ThreadSafe2
