@@ -6,9 +6,18 @@ v8 javascript engine binding for golang.
 How to install
 ==============
 
-Need 'Go 1.2' for auto compile C++ file.
+The easy way
+------------
 
-Use the command below to auto download and compile go-v8.
+Prepare you computer:
+
+1. make sure your 'go' is version 1.2
+2. make sure there has 'curl' or 'wget' installed
+3. make sure there has 'git' installed
+
+There has some shell script in the project root directory for help you download and install v8 engine and go-v8.
+
+Install v8 engine and go-v8 only need one line of shell command.
 
 For Mac OS:
 
@@ -22,12 +31,27 @@ Use Linux:
 wget -O get.sh https://raw.github.com/realint/go-v8/master/get.sh && chmod +x get.sh && ./get.sh go-v8
 ```
 
+The hard way
+------------
+
+You can install go-v8 by manual:
+
+1. download or clone go-v8 from github
+2. make sure go-v8 package can be searched by your GOPATH setting
+3. cd to go-v8 root directory
+4. run install.sh to auto download and compile v8 engine
+5. the install.sh will install and test go-v8 after v8 engine compiled
+
+Read the get.sh and install.sh if you want to know the detail.
+
 Stability and Performance
 =========================
 
+I write many test and benchmark to make sure go-v8 stable and efficient.
+
 There is a shell script named 'test.sh' in the project. 
 
-It can auto configure cgo environment variable and run go-v8 test.
+It can auto configure cgo environment variables and run go-v8 test.
 
 For example:
 
@@ -35,15 +59,17 @@ For example:
 ./test.sh . .
 ```
 
+The above command will run all of test and benchmark.
+
 The first argument of test.sh is test name pattern, second argument is benchmark name pattern.
 
 For example:
 
 ```
-./test.sh .
+./test.sh ThreadSafe Array
 ```
 
-The command above will run test without benchmark.
+The above command will run all of thread safe test and all of benchmark about Array type.
 
 Below is the test and benchmark result on my iMac:
 
