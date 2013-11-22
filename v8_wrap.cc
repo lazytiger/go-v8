@@ -1,8 +1,6 @@
 #include <cstdlib>
-#include <cstdint>
 #include <cstring>
 #include <sstream>
-#include <iostream>
 #include <string>
 #include "v8.h"
 #include "v8_wrap.h"
