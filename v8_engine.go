@@ -6,7 +6,6 @@ package v8
 import "C"
 import "unsafe"
 import "runtime"
-import "reflect"
 
 var traceDispose = false
 
@@ -45,9 +44,4 @@ func NewEngine() *Engine {
 	})
 
 	return result
-}
-
-func (e *Engine) ParseJSON(json string) *Value {
-	jsonPtr := unsafe.Pointer((*reflect.StringHeader)(unsafe.Pointer(&json)).Data)
-	return newValue(C.V8_ParseJSON(e.self, (*C.char)(jsonPtr), C.int(len(json))))
 }

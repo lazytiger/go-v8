@@ -544,8 +544,10 @@ func Test_UnderscoreJS(t *testing.T) {
 	}
 }
 
-func Test_ParseJSON(t *testing.T) {
-	value := Default.ParseJSON(`{"a":1, "b":2, "c":3, "d":[4,5,6]}`)
+func Test_JSON(t *testing.T) {
+	json := `{"a":1,"b":2,"c":"xyz","e":true,"f":false,"g":null,"h":[4,5,6]}`
+
+	value := Default.ParseJSON(json)
 
 	if value == nil {
 		t.Fatal(`value == nil`)
@@ -553,6 +555,10 @@ func Test_ParseJSON(t *testing.T) {
 
 	if value.IsObject() == false {
 		t.Fatal(`value == false`)
+	}
+
+	if string(ToJSON(value)) != json {
+		t.Fatal(`string(ToJSON(value)) != json`)
 	}
 
 	object := value.ToObject()
@@ -565,15 +571,23 @@ func Test_ParseJSON(t *testing.T) {
 		t.Fatal(`object.GetProperty("b").ToInt32() != 2`)
 	}
 
-	if object.GetProperty("c").ToInt32() != 3 {
-		t.Fatal(`object.GetProperty("c").ToInt32() != 3`)
+	if object.GetProperty("c").ToString() != "xyz" {
+		t.Fatal(`object.GetProperty("c").ToString() != "xyz"`)
 	}
 
-	if object.GetProperty("d").IsArray() == false {
-		t.Fatal(`object.GetProperty("d").IsArray() == false`)
+	if object.GetProperty("e").IsTrue() == false {
+		t.Fatal(`object.GetProperty("e").IsTrue() == false`)
 	}
 
-	array := object.GetProperty("d").ToArray()
+	if object.GetProperty("f").IsFalse() == false {
+		t.Fatal(`object.GetProperty("f").IsFalse() == false`)
+	}
+
+	if object.GetProperty("g").IsNull() == false {
+		t.Fatal(`object.GetProperty("g").IsNull() == false`)
+	}
+
+	array := object.GetProperty("h").ToArray()
 
 	if array.Length() != 3 {
 		t.Fatal(`array.Length() != 3`)
