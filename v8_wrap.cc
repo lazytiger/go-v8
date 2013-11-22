@@ -193,6 +193,19 @@ void V8_DisposeEngine(void* engine) {
 	isolate->Dispose();
 }
 
+void* V8_ParseJSON(void* engine, const char* json, int json_length) {
+	ENGINE_SCOPE(engine);
+	
+	Handle<Value> value = JSON::Parse(
+		String::NewFromOneByte(isolate, (uint8_t*)json, String::kNormalString, json_length)
+	);
+
+	if (value.IsEmpty())
+		return NULL;
+
+	return (void*)(new V8_Value(the_engine, value));
+}
+
 /*
 context
 */

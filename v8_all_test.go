@@ -544,6 +544,54 @@ func Test_UnderscoreJS(t *testing.T) {
 	}
 }
 
+func Test_ParseJSON(t *testing.T) {
+	value := Default.ParseJSON(`{"a":1, "b":2, "c":3, "d":[4,5,6]}`)
+
+	if value == nil {
+		t.Fatal(`value == nil`)
+	}
+
+	if value.IsObject() == false {
+		t.Fatal(`value == false`)
+	}
+
+	object := value.ToObject()
+
+	if object.GetProperty("a").ToInt32() != 1 {
+		t.Fatal(`object.GetProperty("a").ToInt32() != 1`)
+	}
+
+	if object.GetProperty("b").ToInt32() != 2 {
+		t.Fatal(`object.GetProperty("b").ToInt32() != 2`)
+	}
+
+	if object.GetProperty("c").ToInt32() != 3 {
+		t.Fatal(`object.GetProperty("c").ToInt32() != 3`)
+	}
+
+	if object.GetProperty("d").IsArray() == false {
+		t.Fatal(`object.GetProperty("d").IsArray() == false`)
+	}
+
+	array := object.GetProperty("d").ToArray()
+
+	if array.Length() != 3 {
+		t.Fatal(`array.Length() != 3`)
+	}
+
+	if array.GetElement(0).ToInt32() != 4 {
+		t.Fatal(`array.GetElement(0).ToInt32() != 4`)
+	}
+
+	if array.GetElement(1).ToInt32() != 5 {
+		t.Fatal(`array.GetElement(1).ToInt32() != 5`)
+	}
+
+	if array.GetElement(2).ToInt32() != 6 {
+		t.Fatal(`array.GetElement(2).ToInt32() != 6`)
+	}
+}
+
 func rand_sched(max int) {
 	for j := rand.Intn(max); j > 0; j-- {
 		runtime.Gosched()
