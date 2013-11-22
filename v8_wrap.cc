@@ -860,14 +860,14 @@ void V8_ReturnValue_SetUndefined(void* rv) {
 function
 */
 typedef struct {
-	V8_Context*                        engine;
-	const FunctionCallbackInfo<Value>* info;
-	V8_ReturnValue*                    returnValue;
+	V8_Context*                            engine;
+	const v8::FunctionCallbackInfo<Value>* info;
+	V8_ReturnValue*                        returnValue;
 } V8_FunctionCallbackInfo;
 
 extern void go_function_callback(void* info, void* callback);
 
-void V8_FunctionCallback(const FunctionCallbackInfo<Value>& info) {
+void V8_FunctionCallback(const v8::FunctionCallbackInfo<Value>& info) {
 	v8::Isolate* isolate = v8::Isolate::GetCurrent();
 	HandleScope handle_scope(isolate);
 
