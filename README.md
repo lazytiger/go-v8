@@ -8,17 +8,18 @@ How to install
 
 Need 'Go 1.2' for auto compile C++ file.
 
-Use the command below to auto download and compile go-v8:
+Use the command below to auto download and compile go-v8.
+
+For Mac OS:
 
 ```
-mkdir go-v8
-cd go-v8 && mkdir -p bin pkg src/github.com/realint/go-v8
-export GOPATH=`pwd`
-cd src/github.com/realint/go-v8
-git init
-git remote add origin https://github.com/realint/go-v8
-git pull origin master
-./install.sh
+curl -O https://raw.github.com/realint/go-v8/master/get.sh && chmod +x get.sh && ./get.sh go-v8
+```
+
+Use Linux:
+
+```
+wget -O get.sh https://raw.github.com/realint/go-v8/master/get.sh && chmod +x get.sh && ./get.sh go-v8
 ```
 
 Stability and Performance
