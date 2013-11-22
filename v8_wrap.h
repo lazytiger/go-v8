@@ -16,7 +16,9 @@ extern void V8_DisposeEngine(void* engine);
 
 extern void* V8_ParseJSON(void* engine, const char* json, int json_length);
 
-extern char* V8_TryCatch(void* engine, void* callback);
+extern void V8_ThrowException(void* engine, const char* err, int err_length);
+
+extern char* V8_TryCatch(void* engine, void* callback, int simple);
 
 /*
 context

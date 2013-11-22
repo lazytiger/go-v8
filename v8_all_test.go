@@ -613,9 +613,15 @@ func Test_JSON(t *testing.T) {
 }
 
 func Test_TryCatch(t *testing.T) {
-	Default.TryCatch(func() {
+	Default.TryCatch(true, func() {
 		Default.Compile([]byte("a[=1"), nil, nil)
 	})
+
+	if Default.TryCatch(true, func() {
+		Default.ThrowException("this is error")
+	}) != "this is error" {
+		t.Fatal("error message not match")
+	}
 }
 
 func rand_sched(max int) {
@@ -1052,7 +1058,7 @@ func Benchmark_Setter(b *testing.B) {
 
 func Benchmark_TryCatch(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		Default.TryCatch(func() {
+		Default.TryCatch(true, func() {
 			Default.Compile([]byte("a[=1"), nil, nil)
 		})
 	}

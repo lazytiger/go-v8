@@ -208,6 +208,13 @@ void* V8_ParseJSON(void* engine, const char* json, int json_length) {
 	return (void*)(new V8_Value(the_engine, value));
 }
 
+void V8_ThrowException(void* engine, const char* err, int err_length) {
+	ENGINE_SCOPE(engine);
+	isolate->ThrowException(
+		String::NewFromOneByte(isolate, (uint8_t*)err, String::kNormalString, err_length)
+	);
+}
+
 extern void try_catch_callback(void* callback);
 
 // Extracts a C string from a V8 Utf8Value.
@@ -215,7 +222,7 @@ const char* ToCString(const v8::String::Utf8Value& value) {
   return *value ? *value : "<string conversion failed>";
 }
 
-char* V8_TryCatch(void* engine, void* callback) {
+char* V8_TryCatch(void* engine, void* callback, int simple) {
 	ENGINE_SCOPE(engine);
 
 	v8::TryCatch try_catch;
@@ -226,46 +233,49 @@ char* V8_TryCatch(void* engine, void* callback) {
 		return NULL;
 	}
 
-	std::stringstream report;
-
 	v8::String::Utf8Value exception(try_catch.Exception());
 	const char* exception_string = ToCString(exception);
 	v8::Handle<v8::Message> message = try_catch.Message();
 
-	if (message.IsEmpty()) {
+	if (message.IsEmpty() || simple) {
 		// V8 didn't provide any extra information about this error; just
 		// print the exception.
-		report << exception_string << std::endl;
-	} else {
-		// Print (filename):(line number): (message).
-		v8::String::Utf8Value filename(message->GetScriptResourceName());
-		const char* filename_string = ToCString(filename);
-		int linenum = message->GetLineNumber();
-		report << filename_string << ":" << linenum << ": " << exception_string << std::endl;
+		char *cstr = (char*)malloc(exception.length() + 1);
+		std::strncpy(cstr, exception_string, exception.length());
+		cstr[exception.length()+1] = '\0';
+		return cstr;
+	}
 
-		// Print line of source code.
-		v8::String::Utf8Value sourceline(message->GetSourceLine());
-		const char* sourceline_string = ToCString(sourceline);
-		report << sourceline_string << std::endl;
+	std::stringstream report;
 
-		// Print wavy underline (GetUnderline is deprecated).
-		int start = message->GetStartColumn();
-		for (int i = 0; i < start; i++) {
-			report << " ";
-		}
+	// Print (filename):(line number): (message).
+	v8::String::Utf8Value filename(message->GetScriptResourceName());
+	const char* filename_string = ToCString(filename);
+	int linenum = message->GetLineNumber();
+	report << filename_string << ":" << linenum << ": " << exception_string << std::endl;
 
-		int end = message->GetEndColumn();
-		for (int i = start; i < end; i++) {
-			report << "^";
-		}
+	// Print line of source code.
+	v8::String::Utf8Value sourceline(message->GetSourceLine());
+	const char* sourceline_string = ToCString(sourceline);
+	report << sourceline_string << std::endl;
 
-		report << std::endl;
+	// Print wavy underline (GetUnderline is deprecated).
+	int start = message->GetStartColumn();
+	for (int i = 0; i < start; i++) {
+		report << " ";
+	}
 
-		v8::String::Utf8Value stack_trace(try_catch.StackTrace());
-		if (stack_trace.length() > 0) {
-			const char* stack_trace_string = ToCString(stack_trace);
-			report << stack_trace_string << std::endl;
-		}
+	int end = message->GetEndColumn();
+	for (int i = start; i < end; i++) {
+		report << "^";
+	}
+
+	report << std::endl;
+
+	v8::String::Utf8Value stack_trace(try_catch.StackTrace());
+	if (stack_trace.length() > 0) {
+		const char* stack_trace_string = ToCString(stack_trace);
+		report << stack_trace_string << std::endl;
 	}
 
 	std::string report_string = report.str();

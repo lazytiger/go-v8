@@ -7,6 +7,7 @@ package v8
 import "C"
 import "unsafe"
 import "runtime"
+import "reflect"
 
 var traceDispose = false
 
@@ -52,8 +53,17 @@ func try_catch_callback(callback unsafe.Pointer) {
 	(*(*func())(callback))()
 }
 
-func (e *Engine) TryCatch(callback func()) string {
-	creport := C.V8_TryCatch(e.self, unsafe.Pointer(&callback))
+func (e *Engine) ThrowException(err string) {
+	errPtr := unsafe.Pointer((*reflect.StringHeader)(unsafe.Pointer(&err)).Data)
+	C.V8_ThrowException(e.self, (*C.char)(errPtr), C.int(len(err)))
+}
+
+func (e *Engine) TryCatch(simple bool, callback func()) string {
+	isSimple := 0
+	if simple {
+		isSimple = 1
+	}
+	creport := C.V8_TryCatch(e.self, unsafe.Pointer(&callback), C.int(isSimple))
 	if creport == nil {
 		return ""
 	}

@@ -3,6 +3,19 @@ go-v8
 
 v8 javascript engine binding for golang.
 
+Features
+=======
+
+* thread safe
+* thorough and careful testing
+* number, string, object, array, regexp, function types
+* access javascript object properties and array elements in Go
+* define javascript object template in Go with property getter and setter callback
+* define javascript function template in Go with callback
+* compile or pre-compile script and run
+* JSON parse and generate
+* try catch and throw exception
+
 How to install
 ==============
 
