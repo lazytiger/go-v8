@@ -61,7 +61,30 @@ func AppendJSON(dst []byte, value *Value) []byte {
 		dst = append(dst, jsonObjectEnd...)
 	case value.IsString():
 		dst = append(dst, jsonQuote...)
-		dst = append(dst, value.ToString()...)
+		str := value.ToString()
+		for i := 0; i < len(str); i++ {
+			c := str[i]
+			switch c {
+			case '"':
+				dst = append(dst, '\\', '"')
+			case '\\':
+				dst = append(dst, '\\', '\\')
+			case '/':
+				dst = append(dst, '\\', '/')
+			case '\n':
+				dst = append(dst, '\\', 'n')
+			case '\r':
+				dst = append(dst, '\\', 'r')
+			case '\t':
+				dst = append(dst, '\\', 't')
+			case '\b':
+				dst = append(dst, '\\', 'b')
+			case '\f':
+				dst = append(dst, '\\', 'f')
+			default:
+				dst = append(dst, c)
+			}
+		}
 		dst = append(dst, jsonQuote...)
 	case value.IsNumber():
 		dst = append(dst, value.ToString()...)

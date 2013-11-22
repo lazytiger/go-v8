@@ -604,6 +604,12 @@ func Test_JSON(t *testing.T) {
 	if array.GetElement(2).ToInt32() != 6 {
 		t.Fatal(`array.GetElement(2).ToInt32() != 6`)
 	}
+
+	json = `"\"\/\r\n\t\b\\"`
+
+	if string(ToJSON(Default.ParseJSON(json))) != json {
+		t.Fatal(`ToJSON(Default.ParseJSON(json)) != json`)
+	}
 }
 
 func rand_sched(max int) {
