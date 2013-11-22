@@ -67,6 +67,21 @@ func Test_HelloWorld(t *testing.T) {
 	runtime.GC()
 }
 
+func Test_TryCatch(t *testing.T) {
+	Default.TryCatch(true, func() {
+		Default.Compile([]byte("a[=1"), nil, nil)
+	})
+
+	if Default.TryCatch(true, func() {
+		Default.ThrowException("this is error")
+	}) != "this is error" {
+		t.Fatal("error message not match")
+	}
+
+	// TODO: fix it
+	Default = NewEngine()
+}
+
 func Test_PreCompile(t *testing.T) {
 	// pre-compile
 	code := []byte("'Hello ' + 'PreCompile!'")
@@ -609,18 +624,6 @@ func Test_JSON(t *testing.T) {
 
 	if string(ToJSON(Default.ParseJSON(json))) != json {
 		t.Fatal(`ToJSON(Default.ParseJSON(json)) != json`)
-	}
-}
-
-func Test_TryCatch(t *testing.T) {
-	Default.TryCatch(true, func() {
-		Default.Compile([]byte("a[=1"), nil, nil)
-	})
-
-	if Default.TryCatch(true, func() {
-		Default.ThrowException("this is error")
-	}) != "this is error" {
-		t.Fatal("error message not match")
 	}
 }
 

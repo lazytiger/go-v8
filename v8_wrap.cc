@@ -241,8 +241,7 @@ char* V8_TryCatch(void* engine, void* callback, int simple) {
 		// V8 didn't provide any extra information about this error; just
 		// print the exception.
 		char *cstr = (char*)malloc(exception.length() + 1);
-		std::strncpy(cstr, exception_string, exception.length());
-		cstr[exception.length()+1] = '\0';
+		std::strcpy(cstr, exception_string);
 		return cstr;
 	}
 
