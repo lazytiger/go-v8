@@ -68,18 +68,17 @@ func Test_HelloWorld(t *testing.T) {
 }
 
 func Test_TryCatch(t *testing.T) {
-	Default.TryCatch(true, func() {
+	context := Default.NewContext()
+
+	context.TryCatch(true, func() {
 		Default.Compile([]byte("a[=1"), nil, nil)
 	})
 
-	if Default.TryCatch(true, func() {
-		Default.ThrowException("this is error")
+	if context.TryCatch(true, func() {
+		context.ThrowException("this is error")
 	}) != "this is error" {
 		t.Fatal("error message not match")
 	}
-
-	// TODO: fix it
-	Default = NewEngine()
 }
 
 func Test_PreCompile(t *testing.T) {
@@ -1060,8 +1059,12 @@ func Benchmark_Setter(b *testing.B) {
 }
 
 func Benchmark_TryCatch(b *testing.B) {
+	b.StopTimer()
+	context := Default.NewContext()
+	b.StartTimer()
+
 	for i := 0; i < b.N; i++ {
-		Default.TryCatch(true, func() {
+		context.TryCatch(true, func() {
 			Default.Compile([]byte("a[=1"), nil, nil)
 		})
 	}

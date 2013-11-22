@@ -208,11 +208,24 @@ void* V8_ParseJSON(void* engine, const char* json, int json_length) {
 	return (void*)(new V8_Value(the_engine, value));
 }
 
-void V8_ThrowException(void* engine, const char* err, int err_length) {
-	ENGINE_SCOPE(engine);
-	isolate->ThrowException(
-		String::NewFromOneByte(isolate, (uint8_t*)err, String::kNormalString, err_length)
-	);
+/*
+context
+*/
+void* V8_NewContext(void* engine) {
+	V8_Context* the_engine = static_cast<V8_Context*>(engine);
+
+	ISOLATE_SCOPE(the_engine->GetIsolate());
+	
+	Handle<Context> context = Context::New(isolate);
+
+	if (context.IsEmpty())
+		return NULL;
+
+	return (void*)(new V8_Context(the_engine, context));
+}
+
+void V8_DisposeContext(void* context) {
+	delete static_cast<V8_Context*>(context);
 }
 
 extern void try_catch_callback(void* callback);
@@ -222,8 +235,22 @@ const char* ToCString(const v8::String::Utf8Value& value) {
   return *value ? *value : "<string conversion failed>";
 }
 
-char* V8_TryCatch(void* engine, void* callback, int simple) {
-	ENGINE_SCOPE(engine);
+void V8_Context_ThrowException(void* context, const char* err, int err_length) {
+	V8_Context* ctx = static_cast<V8_Context*>(context);
+	ISOLATE_SCOPE(ctx->GetIsolate());
+	Local<Context> local_context = Local<Context>::New(isolate, ctx->self);
+	Context::Scope context_scope(local_context);
+
+	isolate->ThrowException(
+		String::NewFromOneByte(isolate, (uint8_t*)err, String::kNormalString, err_length)
+	);
+}
+
+char* V8_Context_TryCatch(void* context, void* callback, int simple) {
+	V8_Context* ctx = static_cast<V8_Context*>(context);
+	ISOLATE_SCOPE(ctx->GetIsolate());
+	Local<Context> local_context = Local<Context>::New(isolate, ctx->self);
+	Context::Scope context_scope(local_context);
 
 	v8::TryCatch try_catch;
 
@@ -242,6 +269,9 @@ char* V8_TryCatch(void* engine, void* callback, int simple) {
 		// print the exception.
 		char *cstr = (char*)malloc(exception.length() + 1);
 		std::strcpy(cstr, exception_string);
+
+		V8::CancelTerminateExecution(isolate);
+		
 		return cstr;
 	}
 
@@ -280,28 +310,10 @@ char* V8_TryCatch(void* engine, void* callback, int simple) {
 	std::string report_string = report.str();
 	char *cstr = (char*)malloc(report_string.length() +1);
 	std::strcpy(cstr, report_string.c_str());
+	
+	V8::CancelTerminateExecution(isolate);
 
 	return cstr;
-}
-
-/*
-context
-*/
-void* V8_NewContext(void* engine) {
-	V8_Context* the_engine = static_cast<V8_Context*>(engine);
-
-	ISOLATE_SCOPE(the_engine->GetIsolate());
-	
-	Handle<Context> context = Context::New(isolate);
-
-	if (context.IsEmpty())
-		return NULL;
-
-	return (void*)(new V8_Context(the_engine, context));
-}
-
-void V8_DisposeContext(void* context) {
-	delete static_cast<V8_Context*>(context);
 }
 
 /*

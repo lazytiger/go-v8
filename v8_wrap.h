@@ -16,16 +16,16 @@ extern void V8_DisposeEngine(void* engine);
 
 extern void* V8_ParseJSON(void* engine, const char* json, int json_length);
 
-extern void V8_ThrowException(void* engine, const char* err, int err_length);
-
-extern char* V8_TryCatch(void* engine, void* callback, int simple);
-
 /*
 context
 */
 extern void* V8_NewContext(void* engine);
 
 extern void V8_DisposeContext(void* context);
+
+extern void V8_Context_ThrowException(void* context, const char* err, int err_length);
+
+extern char* V8_Context_TryCatch(void* context, void* callback, int simple);
 
 /*
 script
