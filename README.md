@@ -32,13 +32,13 @@ There has some shell script in the project root directory for help you download 
 
 Install v8 engine and go-v8 only need one line of shell command.
 
-For Mac OS:
+Use 'curl':
 
 ```
 curl -O https://raw.github.com/realint/go-v8/master/get.sh && chmod +x get.sh && ./get.sh go-v8
 ```
 
-Use Linux:
+Use 'wget':
 
 ```
 wget -O get.sh https://raw.github.com/realint/go-v8/master/get.sh && chmod +x get.sh && ./get.sh go-v8
