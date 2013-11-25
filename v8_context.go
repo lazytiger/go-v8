@@ -7,6 +7,7 @@ package v8
 import "C"
 import "unsafe"
 import "runtime"
+
 //import "reflect"
 
 // A sandboxed execution context with its own set of built-in objects
@@ -44,7 +45,10 @@ func try_catch_callback(callback unsafe.Pointer) {
 }
 
 func (c *Context) ThrowException(err string) {
-	Default.Compile([]byte(`throw "` + err + `"`), nil, nil).Run(c)
+	Default.Compile([]byte(`throw "`+err+`"`), nil, nil).Run(c)
+	//
+	// TODO: use ThrowException() will make function template GetFunction() return NULLv8_all_test.go, why?
+	//
 	//errPtr := unsafe.Pointer((*reflect.StringHeader)(unsafe.Pointer(&err)).Data)
 	//C.V8_Context_ThrowException(c.self, (*C.char)(errPtr), C.int(len(err)))
 }

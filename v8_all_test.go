@@ -447,6 +447,10 @@ func Test_Function(t *testing.T) {
 		info.ReturnValue().SetBoolean(true)
 	}).NewFunction()
 
+	if function == nil {
+		t.Fatal("function == nil")
+	}
+
 	if function.ToFunction().Call(
 		Default.NewString("Hello World!"),
 	).IsTrue() == false {
