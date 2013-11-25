@@ -47,7 +47,7 @@ func try_catch_callback(callback unsafe.Pointer) {
 func (c *Context) ThrowException(err string) {
 	Default.Compile([]byte(`throw "`+err+`"`), nil, nil).Run(c)
 	//
-	// TODO: use ThrowException() will make function template GetFunction() return NULL, why?
+	// TODO: use Isolate::ThrowException() will make FunctionTemplate::GetFunction() returns NULL, why?
 	//
 	//errPtr := unsafe.Pointer((*reflect.StringHeader)(unsafe.Pointer(&err)).Data)
 	//C.V8_Context_ThrowException(c.self, (*C.char)(errPtr), C.int(len(err)))
