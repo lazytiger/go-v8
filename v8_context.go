@@ -39,13 +39,22 @@ func (e *Engine) NewContext() *Context {
 	return result
 }
 
+//export context_scope_callback
+func context_scope_callback(c unsafe.Pointer, callback unsafe.Pointer) {
+	(*(*func(*Context))(callback))((*Context)(c))
+}
+
+func (c *Context) Scope(callback func(*Context)) {
+	C.V8_Context_Scope(c.self, unsafe.Pointer(c), unsafe.Pointer(&callback))
+}
+
 //export try_catch_callback
 func try_catch_callback(callback unsafe.Pointer) {
 	(*(*func())(callback))()
 }
 
 func (c *Context) ThrowException(err string) {
-	Default.Compile([]byte(`throw "`+err+`"`), nil, nil).Run(c)
+	c.engine.Compile([]byte(`throw "`+err+`"`), nil, nil).Run()
 	//
 	// TODO: use Isolate::ThrowException() will make FunctionTemplate::GetFunction() returns NULL, why?
 	//

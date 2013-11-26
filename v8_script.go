@@ -63,8 +63,8 @@ func (e *Engine) Compile(code []byte, origin *ScriptOrigin, data *ScriptData) *S
 
 // Runs the script returning the resulting value.
 //
-func (s Script) Run(c *Context) *Value {
-	return newValue(C.V8_RunScript(c.self, s.self))
+func (s Script) Run() *Value {
+	return newValue(C.V8_Script_Run(s.self))
 }
 
 // Pre-compilation data that can be associated with a script.  This

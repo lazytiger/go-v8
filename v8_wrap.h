@@ -23,6 +23,12 @@ extern void* V8_NewContext(void* engine);
 
 extern void V8_DisposeContext(void* context);
 
+extern void V8_Context_Enter(void* context);
+
+extern void V8_Context_Exit(void* context);
+
+extern void V8_Context_Scope(void* context, void* context_ptr, void* callback);
+
 extern void V8_Context_ThrowException(void* context, const char* err, int err_length);
 
 extern char* V8_Context_TryCatch(void* context, void* callback, int simple);
@@ -34,7 +40,7 @@ extern void* V8_Compile(void* engine, const char* code, int length, void* script
 
 extern void V8_DisposeScript(void* script);
 
-extern void* V8_RunScript(void* context, void* script);
+extern void* V8_Script_Run(void* script);
 
 /*
 script data

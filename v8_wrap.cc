@@ -149,29 +149,21 @@ public:
 
 #define ENGINE_SCOPE(engine) \
 	V8_Context* the_engine = static_cast<V8_Context*>(engine); \
-	ISOLATE_SCOPE(the_engine->GetIsolate()); \
-	Local<Context> local_context = Local<Context>::New(isolate, the_engine->self); \
-	Context::Scope context_scope(local_context) \
+	ISOLATE_SCOPE(the_engine->GetIsolate()) \
 
 #define VALUE_SCOPE(value) \
 	V8_Value* the_value = static_cast<V8_Value*>(value); \
 	ISOLATE_SCOPE(the_value->GetIsolate()); \
-	Local<Context> context = Local<Context>::New(isolate, the_value->engine->self); \
-	Context::Scope context_scope(context); \
 	Local<Value> local_value = Local<Value>::New(isolate, the_value->self) \
 
 #define OBJECT_TEMPLATE_SCOPE(tpl) \
 	V8_ObjectTemplate* the_template = static_cast<V8_ObjectTemplate*>(tpl); \
 	ISOLATE_SCOPE(the_template->GetIsolate()); \
-	Local<Context> context = Local<Context>::New(isolate, the_template->engine->self); \
-	Context::Scope context_scope(context); \
 	Local<ObjectTemplate> local_template = Local<ObjectTemplate>::New(isolate, the_template->self) \
 
 #define FUNCTION_TEMPLATE_SCOPE(tpl) \
 	V8_FunctionTemplate* the_template = static_cast<V8_FunctionTemplate*>(tpl); \
 	ISOLATE_SCOPE(the_template->GetIsolate()); \
-	Local<Context> context = Local<Context>::New(isolate, the_template->engine->self); \
-	Context::Scope context_scope(context); \
 	Local<FunctionTemplate> local_template = Local<FunctionTemplate>::New(isolate, the_template->self) \
 
 void* new_V8_Value(V8_Context* the_engine, Handle<Value> value) {
@@ -191,13 +183,20 @@ void* V8_NewEngine() {
 	if (context.IsEmpty())
 		return NULL;
 
+	context->Enter();
+
 	return (void*)(new V8_Context(isolate, context));
 }
 
 void V8_DisposeEngine(void* engine) {
 	V8_Context* the_engine = static_cast<V8_Context*>(engine);
-	Isolate* isolate = the_engine->GetIsolate();
+	ISOLATE_SCOPE(the_engine->GetIsolate());
+	Local<Context> local_context = Local<Context>::New(isolate, the_engine->self);
+
+	local_context->Exit();
+
 	delete the_engine;
+
 	isolate->Dispose();
 }
 
@@ -234,6 +233,33 @@ void V8_DisposeContext(void* context) {
 	delete static_cast<V8_Context*>(context);
 }
 
+void V8_Context_Enter(void* context) {
+	V8_Context* ctx = static_cast<V8_Context*>(context);
+	ISOLATE_SCOPE(ctx->GetIsolate());
+	Handle<Context> local_context = Local<Context>::New(isolate, ctx->self);
+
+	local_context->Enter();
+}
+
+void V8_Context_Exit(void* context) {
+	V8_Context* ctx = static_cast<V8_Context*>(context);
+	ISOLATE_SCOPE(ctx->GetIsolate());
+	Handle<Context> local_context = Local<Context>::New(isolate, ctx->self);
+
+	local_context->Exit();
+}
+
+extern void context_scope_callback(void* context_ptr, void* callback);
+
+void V8_Context_Scope(void* context, void* context_ptr, void* callback) {
+	V8_Context* ctx = static_cast<V8_Context*>(context);
+	ISOLATE_SCOPE(ctx->GetIsolate());
+	Handle<Context> local_context = Local<Context>::New(isolate, ctx->self);
+	Context::Scope scope(local_context);
+
+	context_scope_callback(context_ptr, callback);
+}
+
 extern void try_catch_callback(void* callback);
 
 // Extracts a C string from a V8 Utf8Value.
@@ -244,8 +270,6 @@ const char* ToCString(const v8::String::Utf8Value& value) {
 void V8_Context_ThrowException(void* context, const char* err, int err_length) {
 	V8_Context* ctx = static_cast<V8_Context*>(context);
 	ISOLATE_SCOPE(ctx->GetIsolate());
-	Local<Context> local_context = Local<Context>::New(isolate, ctx->self);
-	Context::Scope context_scope(local_context);
 
 	isolate->ThrowException(
 		String::NewFromOneByte(isolate, (uint8_t*)err, String::kNormalString, err_length)
@@ -255,8 +279,6 @@ void V8_Context_ThrowException(void* context, const char* err, int err_length) {
 char* V8_Context_TryCatch(void* context, void* callback, int simple) {
 	V8_Context* ctx = static_cast<V8_Context*>(context);
 	ISOLATE_SCOPE(ctx->GetIsolate());
-	Local<Context> local_context = Local<Context>::New(isolate, ctx->self);
-	Context::Scope context_scope(local_context);
 
 	v8::TryCatch try_catch;
 
@@ -345,21 +367,12 @@ void V8_DisposeScript(void* script) {
 	delete static_cast<V8_Script*>(script);
 }
 
-void* V8_RunScript(void* context, void* script) {
-	V8_Context* ctx = static_cast<V8_Context*>(context);
-	ISOLATE_SCOPE(ctx->GetIsolate());
-	Local<Context> local_context = Local<Context>::New(isolate, ctx->self);
-	Context::Scope context_scope(local_context);
-
-	V8_Script* spt = static_cast<V8_Script*>(script);
-	Local<Script> local_script = Local<Script>::New(isolate, spt->self);
+void* V8_Script_Run(void* script) {
+	V8_Script* the_script = static_cast<V8_Script*>(script);
+	ISOLATE_SCOPE(the_script->engine->GetIsolate());
+	Local<Script> local_script = Local<Script>::New(isolate, the_script->self);
 	
-	Handle<Value> result = local_script->Run();
-
-	if (result.IsEmpty())
-		return NULL;
-
-	return new_V8_Value(spt->engine, result);
+	return new_V8_Value(the_script->engine, local_script->Run());
 }
 
 /*
