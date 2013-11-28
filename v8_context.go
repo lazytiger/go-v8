@@ -17,8 +17,12 @@ type Context struct {
 	engine *Engine
 }
 
-func (e *Engine) NewContext() *Context {
-	self := C.V8_NewContext(e.self)
+func (e *Engine) NewContext(globalTemplate *ObjectTemplate) *Context {
+	var globalTemplatePtr unsafe.Pointer
+	if globalTemplate != nil {
+		globalTemplatePtr = globalTemplate.self
+	}
+	self := C.V8_NewContext(e.self, globalTemplatePtr)
 
 	if self == nil {
 		return nil
@@ -74,10 +78,4 @@ func (c *Context) TryCatch(simple bool, callback func()) string {
 	report := C.GoString(creport)
 	C.free(unsafe.Pointer(creport))
 	return report
-}
-
-func (c *Context) Global() *Object {
-	global := &Object{newValue(C.V8_Context_Global(c.self))}
-	global.context = c
-	return global
 }

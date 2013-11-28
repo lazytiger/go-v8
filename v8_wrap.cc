@@ -209,12 +209,17 @@ void* V8_ParseJSON(void* engine, const char* json, int json_length) {
 /*
 context
 */
-void* V8_NewContext(void* engine) {
+void* V8_NewContext(void* engine, void* global_template) {
 	V8_Context* the_engine = static_cast<V8_Context*>(engine);
 
 	ISOLATE_SCOPE(the_engine->GetIsolate());
 	
-	Handle<Context> context = Context::New(isolate);
+	Handle<Context> context = Context::New(
+		isolate, NULL, 
+		global_template == NULL ? Handle<ObjectTemplate>() : Local<ObjectTemplate>::New(
+			isolate, static_cast<V8_ObjectTemplate*>(global_template)->self
+		)
+	);
 
 	if (context.IsEmpty())
 		return NULL;
@@ -267,13 +272,6 @@ void V8_Context_ThrowException(void* context, const char* err, int err_length) {
 	isolate->ThrowException(
 		String::NewFromOneByte(isolate, (uint8_t*)err, String::kNormalString, err_length)
 	);
-}
-
-void* V8_Context_Global(void* context) {
-	ENGINE_SCOPE(context);
-
-	Local<Context> local_context = Local<Context>::New(isolate, the_engine->self);
-	return new_V8_Value(the_engine, local_context->Global()); 
 }
 
 char* V8_Context_TryCatch(void* context, void* callback, int simple) {

@@ -54,22 +54,22 @@ func init() {
 	}()
 }
 
-func TestV8(t *testing.T) {
+func Test_GetVersion(t *testing.T) {
 	t.Log(GetVersion())
 }
 
 func Test_HelloWorld(t *testing.T) {
-	Default.NewContext().Scope(func(c *Context) {
+	Default.NewContext(nil).Scope(func(c *Context) {
 		if Default.Eval([]byte("'Hello ' + 'World!'")).ToString() != "Hello World!" {
 			t.Fatal("result not match")
 		}
-
-		runtime.GC()
 	})
+
+	runtime.GC()
 }
 
 func Test_TryCatch(t *testing.T) {
-	Default.NewContext().Scope(func(c *Context) {
+	Default.NewContext(nil).Scope(func(c *Context) {
 		c.TryCatch(true, func() {
 			Default.Compile([]byte("a[=1"), nil, nil)
 		})
@@ -80,10 +80,12 @@ func Test_TryCatch(t *testing.T) {
 			t.Fatal("error message not match")
 		}
 	})
+
+	runtime.GC()
 }
 
 func Test_PreCompile(t *testing.T) {
-	Default.NewContext().Scope(func(c *Context) {
+	Default.NewContext(nil).Scope(func(c *Context) {
 		// pre-compile
 		code := []byte("'Hello ' + 'PreCompile!'")
 		scriptData1 := Default.PreCompile(code)
@@ -108,9 +110,9 @@ func Test_PreCompile(t *testing.T) {
 		if result != "Hello PreCompile!" {
 			t.Fatal("result not match")
 		}
-
-		runtime.GC()
 	})
+
+	runtime.GC()
 }
 
 func Test_Values(t *testing.T) {
@@ -213,7 +215,7 @@ func Test_Values(t *testing.T) {
 }
 
 func Test_Object(t *testing.T) {
-	Default.NewContext().Scope(func(c *Context) {
+	Default.NewContext(nil).Scope(func(c *Context) {
 		script := Default.Compile([]byte("a={};"), nil, nil)
 		value := script.Run()
 		object := value.ToObject()
@@ -362,13 +364,13 @@ func Test_Object(t *testing.T) {
 		if names.GetElement(2).ToString() != "z" {
 			t.Fatal(`names.GetElement(2).ToString() != "z"`)
 		}
-
-		runtime.GC()
 	})
+
+	runtime.GC()
 }
 
 func Test_Array(t *testing.T) {
-	Default.NewContext().Scope(func(c *Context) {
+	Default.NewContext(nil).Scope(func(c *Context) {
 		script := Default.Compile([]byte("[1,2,3]"), nil, nil)
 		value := script.Run()
 		result := value.ToArray()
@@ -412,13 +414,13 @@ func Test_Array(t *testing.T) {
 		} else {
 			t.Fatal("could't get element 0")
 		}
-
-		runtime.GC()
 	})
+
+	runtime.GC()
 }
 
 func Test_Function(t *testing.T) {
-	Default.NewContext().Scope(func(c *Context) {
+	Default.NewContext(nil).Scope(func(c *Context) {
 		script := Default.Compile([]byte(`
 			a = function(x,y,z){ 
 				return x+y+z; 
@@ -462,61 +464,8 @@ func Test_Function(t *testing.T) {
 			t.Fatal("callback return not match")
 		}
 	})
-}
 
-func Test_Context(t *testing.T) {
-	script1 := Default.Compile([]byte("typeof(Test_Context) == 'undefined';"), nil, nil)
-	script2 := Default.Compile([]byte("Test_Context = 1;"), nil, nil)
-	script3 := Default.Compile([]byte("Test_Context = Test_Context + 7;"), nil, nil)
-
-	test_func := func(c *Context) {
-		if script1.Run().IsFalse() {
-			t.Fatal(`script1.Run(c).IsFalse()`)
-		}
-
-		if script2.Run().ToInteger() != 1 {
-			t.Fatal(`script2.Run(c).ToInteger() != 1`)
-		}
-
-		if script3.Run().ToInteger() != 8 {
-			t.Fatal(`script3.Run(c).ToInteger() != 8`)
-		}
-	}
-
-	Default.NewContext().Scope(func(c *Context) {
-		Default.NewContext().Scope(test_func)
-		Default.NewContext().Scope(test_func)
-		test_func(c)
-	})
-
-	context := Default.NewContext()
-	functionTemplate := Default.NewFunctionTemplate(func(info FunctionCallbackInfo) {
-		for i := 0; i < info.Length(); i++ {
-			t.Log(info.Get(i).ToString())
-		}
-	})
-
-	script := Default.Compile([]byte(`println("hello", "world", name);`), nil, nil)
-	exception := context.TryCatch(true, func() {
-		context.Scope(func(context *Context) {
-			global := context.Global()
-			if !global.SetProperty("println", functionTemplate.NewFunction(), PA_None) {
-				t.FailNow()
-			}
-
-			global = context.Global()
-			if !global.HasProperty("println") {
-				t.FailNow()
-			}
-
-			global.SetProperty("myObj", Default.NewObject(), PA_None)
-			global.SetProperty("name", Default.NewString("v8"), PA_None)
-			script.Run()
-		})
-	})
-	if exception != "" {
-		t.FailNow()
-	}
+	runtime.GC()
 }
 
 func Test_ObjectTemplate(t *testing.T) {
@@ -567,10 +516,52 @@ func Test_ObjectTemplate(t *testing.T) {
 		value = Default.NewObject()
 		template.WrapObject(value)
 	}
+
+	runtime.GC()
+}
+
+func Test_Context(t *testing.T) {
+	script1 := Default.Compile([]byte("typeof(Test_Context) == 'undefined';"), nil, nil)
+	script2 := Default.Compile([]byte("Test_Context = 1;"), nil, nil)
+	script3 := Default.Compile([]byte("Test_Context = Test_Context + 7;"), nil, nil)
+
+	test_func := func(c *Context) {
+		if script1.Run().IsFalse() {
+			t.Fatal(`script1.Run(c).IsFalse()`)
+		}
+
+		if script2.Run().ToInteger() != 1 {
+			t.Fatal(`script2.Run(c).ToInteger() != 1`)
+		}
+
+		if script3.Run().ToInteger() != 8 {
+			t.Fatal(`script3.Run(c).ToInteger() != 8`)
+		}
+	}
+
+	Default.NewContext(nil).Scope(func(c *Context) {
+		Default.NewContext(nil).Scope(test_func)
+		Default.NewContext(nil).Scope(test_func)
+		test_func(c)
+	})
+
+	globalTemplate := Default.NewObjectTemplate()
+
+	globalTemplate.SetProperty("log", Default.NewFunctionTemplate(func(info FunctionCallbackInfo) {
+		for i := 0; i < info.Length(); i++ {
+			t.Log(info.Get(i).ToString())
+		}
+	}).NewFunction(), PA_None)
+
+	Default.NewContext(globalTemplate).Scope(func(c *Context) {
+		Default.Eval([]byte(`log("Hello World!")`))
+	})
+
+	runtime.GC()
 }
 
 func Test_UnderscoreJS(t *testing.T) {
-	Default.NewContext().Scope(func(c *Context) {
+	Default.NewContext(nil).Scope(func(c *Context) {
 		code, err := ioutil.ReadFile("labs/underscore.js")
 
 		if err != nil {
@@ -598,6 +589,8 @@ func Test_UnderscoreJS(t *testing.T) {
 			t.FailNow()
 		}
 	})
+
+	runtime.GC()
 }
 
 func Test_JSON(t *testing.T) {
@@ -666,6 +659,8 @@ func Test_JSON(t *testing.T) {
 	if string(ToJSON(Default.ParseJSON(json))) != json {
 		t.Fatal(`ToJSON(Default.ParseJSON(json)) != json`)
 	}
+
+	runtime.GC()
 }
 
 func rand_sched(max int) {
@@ -683,7 +678,7 @@ func Test_ThreadSafe1(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		wg.Add(1)
 		go func() {
-			Default.NewContext().Scope(func(c *Context) {
+			Default.NewContext(nil).Scope(func(c *Context) {
 				script := Default.Compile([]byte("'Hello ' + 'World!'"), nil, nil)
 				value := script.Run()
 				result := value.ToString()
@@ -705,7 +700,7 @@ func Test_ThreadSafe1(t *testing.T) {
 //
 func Test_ThreadSafe2(t *testing.T) {
 	fail := false
-	context := Default.NewContext()
+	context := Default.NewContext(nil)
 
 	wg := new(sync.WaitGroup)
 	for i := 0; i < 100; i++ {
@@ -741,7 +736,7 @@ func Test_ThreadSafe3(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		wg.Add(1)
 		go func() {
-			Default.NewContext().Scope(func(c *Context) {
+			Default.NewContext(nil).Scope(func(c *Context) {
 				rand_sched(200)
 
 				value := script.Run()
@@ -765,7 +760,7 @@ func Test_ThreadSafe3(t *testing.T) {
 func Test_ThreadSafe4(t *testing.T) {
 	fail := false
 	script := Default.Compile([]byte("'Hello ' + 'World!'"), nil, nil)
-	context := Default.NewContext()
+	context := Default.NewContext(nil)
 
 	wg := new(sync.WaitGroup)
 	for i := 0; i < 100; i++ {
@@ -797,7 +792,7 @@ func Test_ThreadSafe5(t *testing.T) {
 
 	var value *Value
 
-	Default.NewContext().Scope(func(c *Context) {
+	Default.NewContext(nil).Scope(func(c *Context) {
 		value = Default.Compile([]byte("'Hello ' + 'World!'"), nil, nil).Run()
 	})
 
@@ -844,7 +839,7 @@ func Test_ThreadSafe6(t *testing.T) {
 		go func() {
 			rand_sched(200)
 
-			contextChan <- Default.NewContext()
+			contextChan <- Default.NewContext(nil)
 		}()
 	}
 
@@ -885,7 +880,7 @@ func Test_ThreadSafe6(t *testing.T) {
 
 func Benchmark_NewContext(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		Default.NewContext()
+		Default.NewContext(nil)
 	}
 
 	b.StopTimer()
@@ -1000,7 +995,7 @@ func Benchmark_PreCompile(b *testing.B) {
 
 func Benchmark_RunScript(b *testing.B) {
 	b.StopTimer()
-	context := Default.NewContext()
+	context := Default.NewContext(nil)
 	script := Default.Compile([]byte("1+1"), nil, nil)
 	b.StartTimer()
 
@@ -1024,7 +1019,7 @@ func Benchmark_JsFunction(b *testing.B) {
 		}
 	`), nil, nil)
 
-	Default.NewContext().Scope(func(c *Context) {
+	Default.NewContext(nil).Scope(func(c *Context) {
 		value := script.Run()
 		b.StartTimer()
 
@@ -1119,7 +1114,7 @@ func Benchmark_Setter(b *testing.B) {
 
 func Benchmark_TryCatch(b *testing.B) {
 	b.StopTimer()
-	context := Default.NewContext()
+	context := Default.NewContext(nil)
 	b.StartTimer()
 
 	for i := 0; i < b.N; i++ {

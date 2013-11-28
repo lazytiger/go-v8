@@ -87,24 +87,28 @@ The above command will run all of thread safe test and all of benchmark about Ar
 Below is the test and benchmark result on my iMac:
 
 ```
+=== RUN Test_GetVersion
+--- PASS: Test_GetVersion (0.00 seconds)
+        v8_all_test.go:58: 3.23.0
 === RUN Test_HelloWorld
 --- PASS: Test_HelloWorld (0.00 seconds)
 === RUN Test_TryCatch
---- PASS: Test_TryCatch (0.03 seconds)
+--- PASS: Test_TryCatch (0.01 seconds)
 === RUN Test_PreCompile
 --- PASS: Test_PreCompile (0.00 seconds)
 === RUN Test_Values
---- PASS: Test_Values (0.01 seconds)
+--- PASS: Test_Values (0.00 seconds)
 === RUN Test_Object
 --- PASS: Test_Object (0.00 seconds)
 === RUN Test_Array
 --- PASS: Test_Array (0.00 seconds)
 === RUN Test_Function
 --- PASS: Test_Function (0.00 seconds)
-=== RUN Test_Context
---- PASS: Test_Context (0.00 seconds)
 === RUN Test_ObjectTemplate
 --- PASS: Test_ObjectTemplate (0.00 seconds)
+=== RUN Test_Context
+--- PASS: Test_Context (0.00 seconds)
+        v8_all_test.go:552: Hello World!
 === RUN Test_UnderscoreJS
 --- PASS: Test_UnderscoreJS (0.00 seconds)
 === RUN Test_JSON
@@ -112,31 +116,87 @@ Below is the test and benchmark result on my iMac:
 === RUN Test_ThreadSafe1
 --- PASS: Test_ThreadSafe1 (0.06 seconds)
 === RUN Test_ThreadSafe2
---- PASS: Test_ThreadSafe2 (0.07 seconds)
+--- PASS: Test_ThreadSafe2 (0.06 seconds)
 === RUN Test_ThreadSafe3
 --- PASS: Test_ThreadSafe3 (0.09 seconds)
 === RUN Test_ThreadSafe4
---- PASS: Test_ThreadSafe4 (0.06 seconds)
+--- PASS: Test_ThreadSafe4 (0.07 seconds)
 === RUN Test_ThreadSafe5
 --- PASS: Test_ThreadSafe5 (0.02 seconds)
 === RUN Test_ThreadSafe6
 --- PASS: Test_ThreadSafe6 (0.06 seconds)
 PASS
-Benchmark_NewContext       10000            675691 ns/op
-Benchmark_NewInteger     1000000              2285 ns/op
-Benchmark_NewString      1000000              3101 ns/op
-Benchmark_NewObject      1000000              1865 ns/op
-Benchmark_NewArray0      1000000              3104 ns/op
-Benchmark_NewArray5      1000000              1846 ns/op
-Benchmark_NewArray20     1000000              1955 ns/op
-Benchmark_NewArray100    1000000              2493 ns/op
-Benchmark_Compile         200000             13643 ns/op
-Benchmark_PreCompile      100000             13767 ns/op
-Benchmark_RunScript      2000000              1164 ns/op
-Benchmark_JsFunction     5000000              1087 ns/op
-Benchmark_GoFunction     1000000              8546 ns/op
-Benchmark_Getter         1000000              2729 ns/op
-Benchmark_Setter          500000              4557 ns/op
-Benchmark_TryCatch        100000             26330 ns/op
-ok      github.com/realint/v8   85.164s
+Benchmark_NewContext       10000            688826 ns/op
+Benchmark_NewInteger     1000000              2249 ns/op
+Benchmark_NewString      1000000              3869 ns/op
+Benchmark_NewObject      1000000              4258 ns/op
+Benchmark_NewArray0      1000000              1884 ns/op
+Benchmark_NewArray5      1000000              1558 ns/op
+Benchmark_NewArray20     1000000              4677 ns/op
+Benchmark_NewArray100    1000000              2290 ns/op
+Benchmark_Compile         200000             13752 ns/op
+Benchmark_PreCompile      200000             13879 ns/op
+Benchmark_RunScript      5000000              1271 ns/op
+Benchmark_JsFunction     5000000               719 ns/op
+Benchmark_GoFunction      500000              4434 ns/op
+Benchmark_Getter         1000000              2718 ns/op
+Benchmark_Setter          500000              4523 ns/op
+Benchmark_TryCatch        100000             26957 ns/op
+ok      github.com/realint/v8   97.863s
+```
+
+Getting Started
+===============
+
+Start The Engine
+----------------
+
+At the begining. You need create a V8 engine instance for your program.
+
+```
+import "github.com/realint/go-v8"
+
+var engine = v8.NewEngine()
+```
+
+NOTE: You can create many V8 engine but don't share any data (like Value, Object, Function and Context etc.) between engine instances.
+
+Do Works In Context
+-------------------
+
+```
+var context = engine.NewContext()
+
+context.Scope(func(c *Context){
+	// put your v8 operation code here
+})
+```
+
+Compile And Run
+---------------
+
+You need compile the JavaScript code, before you run it.
+
+```
+engine.NewContext().Scope(func(c *Context){
+	var script = engine.Compile("'Hello ' + 'World!'")
+	script.Run()
+})
+```
+
+A compiled script can run in different context.
+
+```
+var script = engine.Compile("x = 1")
+
+engine.NewContext().Scope(func(c *Context){
+	script.Run()
+	// now there is a variable named 'x' in this context
+})
+
+
+engine.NewContext().Scope(func(c *Context){
+	script.Run()
+	// now there is a variable named 'x' in this context
+})
 ```

@@ -27,7 +27,7 @@ extern void* V8_ParseJSON(void* engine, const char* json, int json_length);
 /*
 context
 */
-extern void* V8_NewContext(void* engine);
+extern void* V8_NewContext(void* engine, void* global_template);
 
 extern void V8_DisposeContext(void* context);
 
@@ -40,8 +40,6 @@ extern void V8_Context_Scope(void* context, void* context_ptr, void* callback);
 extern void V8_Context_ThrowException(void* context, const char* err, int err_length);
 
 extern char* V8_Context_TryCatch(void* context, void* callback, int simple);
-
-extern void* V8_Context_Global(void* context);
 
 /*
 script
