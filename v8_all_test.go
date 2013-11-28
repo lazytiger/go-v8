@@ -54,6 +54,10 @@ func init() {
 	}()
 }
 
+func TestV8(t *testing.T) {
+	t.Log(GetVersion())
+}
+
 func Test_HelloWorld(t *testing.T) {
 	Default.NewContext().Scope(func(c *Context) {
 		if Default.Eval([]byte("'Hello ' + 'World!'")).ToString() != "Hello World!" {
@@ -484,6 +488,35 @@ func Test_Context(t *testing.T) {
 		Default.NewContext().Scope(test_func)
 		test_func(c)
 	})
+
+	context := Default.NewContext()
+	functionTemplate := Default.NewFunctionTemplate(func(info FunctionCallbackInfo) {
+		for i := 0; i < info.Length(); i++ {
+			t.Log(info.Get(i).ToString())
+		}
+	})
+
+	script := Default.Compile([]byte(`println("hello", "world", name);`), nil, nil)
+	exception := context.TryCatch(true, func() {
+		context.Scope(func(context *Context) {
+			global := context.Global()
+			if !global.SetProperty("println", functionTemplate.NewFunction(), PA_None) {
+				t.FailNow()
+			}
+
+			global = context.Global()
+			if !global.HasProperty("println") {
+				t.FailNow()
+			}
+
+			global.SetProperty("myObj", Default.NewObject(), PA_None)
+			global.SetProperty("name", Default.NewString("v8"), PA_None)
+			script.Run()
+		})
+	})
+	if exception != "" {
+		t.FailNow()
+	}
 }
 
 func Test_ObjectTemplate(t *testing.T) {

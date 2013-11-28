@@ -15,6 +15,7 @@ type Value struct {
 	self    unsafe.Pointer
 	isType  int
 	notType int
+	context *Context
 }
 
 func newValue(self unsafe.Pointer) *Value {
@@ -30,7 +31,13 @@ func newValue(self unsafe.Pointer) *Value {
 		if traceDispose {
 			println("v8.Value.Dispose()", v.self)
 		}
-		C.V8_DisposeValue(v.self)
+		if v.context != nil {
+			v.context.Scope(func(context *Context) {
+				C.V8_DisposeValue(v.self)
+			})
+		} else {
+			C.V8_DisposeValue(v.self)
+		}
 	})
 
 	return result

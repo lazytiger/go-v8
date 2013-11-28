@@ -2,10 +2,18 @@
 #define _V8_WARP_H_
 
 #include <stdint.h>
+#include <stdlib.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/*
+V8
+*/
+extern const char* V8_GetVersion();
+
+extern void V8_SetFlagsFromString(const char* str, int length);
 
 /*
 engine
@@ -32,6 +40,8 @@ extern void V8_Context_Scope(void* context, void* context_ptr, void* callback);
 extern void V8_Context_ThrowException(void* context, const char* err, int err_length);
 
 extern char* V8_Context_TryCatch(void* context, void* callback, int simple);
+
+extern void* V8_Context_Global(void* context);
 
 /*
 script

@@ -75,3 +75,9 @@ func (c *Context) TryCatch(simple bool, callback func()) string {
 	C.free(unsafe.Pointer(creport))
 	return report
 }
+
+func (c *Context) Global() *Object {
+	global := &Object{newValue(C.V8_Context_Global(c.self))}
+	global.context = c
+	return global
+}
