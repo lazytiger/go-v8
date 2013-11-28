@@ -33,6 +33,8 @@ extern void V8_Context_ThrowException(void* context, const char* err, int err_le
 
 extern char* V8_Context_TryCatch(void* context, void* callback, int simple);
 
+extern void* V8_Context_Global(void* context);
+
 /*
 script
 */

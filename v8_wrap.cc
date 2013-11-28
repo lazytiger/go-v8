@@ -269,6 +269,13 @@ void V8_Context_ThrowException(void* context, const char* err, int err_length) {
 	);
 }
 
+void* V8_Context_Global(void* context) {
+	ENGINE_SCOPE(context);
+
+	Local<Context> local_context = Local<Context>::New(isolate, the_engine->self);
+	return new_V8_Value(the_engine, local_context->Global()); 
+}
+
 char* V8_Context_TryCatch(void* context, void* callback, int simple) {
 	V8_Context* ctx = static_cast<V8_Context*>(context);
 	ISOLATE_SCOPE(ctx->GetIsolate());

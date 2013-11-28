@@ -484,6 +484,32 @@ func Test_Context(t *testing.T) {
 		Default.NewContext().Scope(test_func)
 		test_func(c)
 	})
+
+	context := Default.NewContext()
+	functionTemplate := Default.NewFunctionTemplate(func(info FunctionCallbackInfo) {
+		for i := 0; i < info.Length(); i++ {
+			println(info.Get(i).ToString())
+		}
+	})
+
+	script := Default.Compile([]byte(`println("hello", "world");`), nil, nil)
+	exception := context.TryCatch(true, func() {
+		context.Scope(func(context *Context) {
+			global := context.Global()
+			if !global.SetProperty("println", functionTemplate.NewFunction(), PA_None) {
+			}
+
+			global = context.Global()
+			if !global.HasProperty("println") {
+				println("no println")
+				return
+			}
+			script.Run()
+		})
+	})
+	if exception != "" {
+		t.FailNow()
+	}
 }
 
 func Test_ObjectTemplate(t *testing.T) {
