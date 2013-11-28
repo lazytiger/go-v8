@@ -105,3 +105,13 @@ func AppendJSON(dst []byte, value *Value) []byte {
 
 	return dst
 }
+
+func GetVersion() string {
+	return C.GoString(C.V8_GetVersion())
+}
+
+func SetFlagsFromString(cmd string) {
+	cs := C.CString(cmd)
+	defer C.free(unsafe.Pointer(cs))
+	C.V8_SetFlagsFromString(cs, C.int(len(cmd)))
+}

@@ -1131,4 +1131,12 @@ void* V8_FunctionTemplate_GetFunction(void* tpl) {
 	return new_V8_Value(the_template->engine, local_template->GetFunction());
 }
 
+const char* V8_GetVersion() {
+	return V8::GetVersion();
+}
+
+void V8_SetFlagsFromString(const char* str, int length) {
+	V8::SetFlagsFromString(str, length);
+}
+
 } // extern "C"

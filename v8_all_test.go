@@ -54,6 +54,10 @@ func init() {
 	}()
 }
 
+func TestV8(t *testing.T) {
+	t.Log(GetVersion())
+}
+
 func Test_HelloWorld(t *testing.T) {
 	Default.NewContext().Scope(func(c *Context) {
 		if Default.Eval([]byte("'Hello ' + 'World!'")).ToString() != "Hello World!" {
@@ -488,7 +492,7 @@ func Test_Context(t *testing.T) {
 	context := Default.NewContext()
 	functionTemplate := Default.NewFunctionTemplate(func(info FunctionCallbackInfo) {
 		for i := 0; i < info.Length(); i++ {
-			println(info.Get(i).ToString())
+			t.Log(info.Get(i).ToString())
 		}
 	})
 
@@ -505,6 +509,7 @@ func Test_Context(t *testing.T) {
 				t.FailNow()
 			}
 
+			global.SetProperty("myObj", Default.NewObject(), PA_None)
 			global.SetProperty("name", Default.NewString("v8"), PA_None)
 			script.Run()
 		})

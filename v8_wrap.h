@@ -2,10 +2,18 @@
 #define _V8_WARP_H_
 
 #include <stdint.h>
+#include <stdlib.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/*
+V8
+*/
+extern const char* V8_GetVersion();
+
+extern void V8_SetFlagsFromString(const char* str, int length);
 
 /*
 engine
