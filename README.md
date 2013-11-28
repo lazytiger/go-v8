@@ -155,7 +155,7 @@ Let's write a Hello World program to learn how to use go-v8.
 
 At the begining, we need import go-v8 package and create a V8 engine instance.
 
-```
+```go
 package main
 
 import "github.com/realint/go-v8"
@@ -169,7 +169,7 @@ NOTE: You can create many V8 engine but don't share any data (like Value, Object
 
 And then, we need to compile the JavaScript code that we want to run.
 
-```
+```go
 ...
 	script := engine.Compile([]byte("'Hello ' + 'World!'"), nil, nil)
 ...
@@ -179,7 +179,7 @@ NOTE: Script can compile one time and run many times.
 
 Now, we need a context scope to run the script.
 
-```
+```go
 ...
 	context := engine.NewContext(nil)
 
@@ -191,7 +191,7 @@ Now, we need a context scope to run the script.
 
 Last we can get the result and print it.
 
-```
+```go
 package main
 
 import "github.com/realint/go-v8"
