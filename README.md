@@ -170,34 +170,23 @@ NOTE: You can create many V8 engine but don't share any data (like Value, Object
 And then, we need to compile the JavaScript code that we want to run.
 
 ```
-package main
-
-import "github.com/realint/go-v8"
-
-func main() {
-	engine := v8.NewEngine()
+...
 	script := engine.Compile([]byte("'Hello ' + 'World!'"), nil, nil)
-}
+...
 ```
 
 NOTE: Script can compile one time and run many times.
 
-Now, we need a context to run the script.
+Now, we need a context scope to run the script.
 
 ```
-package main
-
-import "github.com/realint/go-v8"
-
-func main() {
-	var engine = v8.NewEngine()
-	var script = engine.Compile([]byte("'Hello ' + 'World!'"), nil, nil)
-	var context = engine.NewContext(nil)
+...
+	context := engine.NewContext(nil)
 
 	context.Scope(func(c *v8.Context){
 		script.Run()
 	})
-}
+...
 ```
 
 Last we can get the result and print it.
