@@ -16,8 +16,7 @@ public:
 		self.Reset(isolate_, context);
 	}
 
-	V8_Context(V8_Context* the_engine, Handle<Context> context) {
-		engine = the_engine;
+	V8_Context(V8_Context* engine, Handle<Context> context) {
 		isolate_ = engine->GetIsolate();
 		self.Reset(isolate_, context);
 	}
@@ -26,7 +25,6 @@ public:
 		Locker locker(isolate_);
 		Isolate::Scope isolate_scope(isolate_);
 
-		self.Dispose();
 		self.Reset();
 	}
 
@@ -35,7 +33,6 @@ public:
 	}
 
 	Isolate* isolate_;
-	V8_Context* engine;
 	Persistent<Context> self;
 };
 
@@ -50,7 +47,6 @@ public:
 		Locker locker(GetIsolate());
 		Isolate::Scope isolate_scope(GetIsolate());
 
-		self.Dispose();
 		self.Reset();
 	}
 
@@ -73,7 +69,6 @@ public:
 		Locker locker(GetIsolate());
 		Isolate::Scope isolate_scope(GetIsolate());
 
-		self.Dispose();
 		self.Reset();
 	}
 
@@ -106,7 +101,6 @@ public:
 		Locker locker(GetIsolate());
 		Isolate::Scope isolate_scope(GetIsolate());
 
-		self.Dispose();
 		self.Reset();
 	}
 
@@ -129,7 +123,6 @@ public:
 		Locker locker(GetIsolate());
 		Isolate::Scope isolate_scope(GetIsolate());
 
-		self.Dispose();
 		self.Reset();
 	}
 
