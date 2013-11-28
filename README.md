@@ -194,7 +194,7 @@ Last we can get the result and print it.
 ```
 package main
 
-import "github.com/realint/v8"
+import "github.com/realint/go-v8"
 
 func main() {
 	engine := v8.NewEngine()
