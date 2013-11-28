@@ -145,58 +145,77 @@ Benchmark_TryCatch        100000             26957 ns/op
 ok      github.com/realint/v8   97.863s
 ```
 
-Getting Started
-===============
+How to use
+==========
 
-Start The Engine
-----------------
+Hello World
+-----------
 
-At the begining. You need create a V8 engine instance for your program.
+Let's write a Hello World program to learn how to use go-v8.
+
+At the begining, we need import go-v8 package and create a V8 engine instance.
 
 ```
+package main
+
 import "github.com/realint/go-v8"
 
-var engine = v8.NewEngine()
+func main() {
+	engine := v8.NewEngine()
+}
 ```
 
 NOTE: You can create many V8 engine but don't share any data (like Value, Object, Function and Context etc.) between engine instances.
 
-Do Works In Context
--------------------
+And then, we need to compile the JavaScript code that we want to run.
 
 ```
-var context = engine.NewContext()
+package main
 
-context.Scope(func(c *Context){
-	// put your v8 operation code here
-})
+import "github.com/realint/go-v8"
+
+func main() {
+	engine := v8.NewEngine()
+	script := engine.Compile([]byte("'Hello ' + 'World!'"), nil, nil)
+}
 ```
 
-Compile And Run
----------------
+NOTE: Script can compile one time and run many times.
 
-You need compile the JavaScript code, before you run it.
-
-```
-engine.NewContext().Scope(func(c *Context){
-	var script = engine.Compile("'Hello ' + 'World!'")
-	script.Run()
-})
-```
-
-A compiled script can run in different context.
+Now, we need a context to run the script.
 
 ```
-var script = engine.Compile("x = 1")
+package main
 
-engine.NewContext().Scope(func(c *Context){
-	script.Run()
-	// now there is a variable named 'x' in this context
-})
+import "github.com/realint/go-v8"
 
+func main() {
+	var engine = v8.NewEngine()
+	var script = engine.Compile([]byte("'Hello ' + 'World!'"), nil, nil)
+	var context = engine.NewContext(nil)
 
-engine.NewContext().Scope(func(c *Context){
-	script.Run()
-	// now there is a variable named 'x' in this context
-})
+	context.Scope(func(c *v8.Context){
+		script.Run()
+	})
+}
 ```
+
+Last we can get the result and print it.
+
+```
+package main
+
+import "github.com/realint/v8"
+
+func main() {
+	engine := v8.NewEngine()
+	script := engine.Compile([]byte("'Hello ' + 'World!'"), nil, nil)
+	context := engine.NewContext(nil)
+
+	context.Scope(func(c *v8.Context){
+		result := script.Run()
+		println(result.ToString())
+	})
+}
+```
+
