@@ -16,9 +16,8 @@ public:
 		self.Reset(isolate_, context);
 	}
 
-	V8_Context(V8_Context* the_engine, Handle<Context> context) {
-		//engine = the_engine;
-		isolate_ = the_engine->GetIsolate();
+	V8_Context(V8_Context* engine, Handle<Context> context) {
+		isolate_ = engine->GetIsolate();
 		self.Reset(isolate_, context);
 	}
 
@@ -34,7 +33,6 @@ public:
 	}
 
 	Isolate* isolate_;
-	//V8_Context* engine;
 	Persistent<Context> self;
 };
 
