@@ -32,9 +32,9 @@ func newValue(self unsafe.Pointer) *Value {
 			println("v8.Value.Dispose()", v.self)
 		}
 		if v.context != nil {
-		v.context.Scope(func(context *Context) {
-			C.V8_DisposeValue(v.self)
-		})
+			v.context.Scope(func(context *Context) {
+				C.V8_DisposeValue(v.self)
+			})
 		} else {
 			C.V8_DisposeValue(v.self)
 		}
