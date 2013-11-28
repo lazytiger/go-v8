@@ -492,18 +492,20 @@ func Test_Context(t *testing.T) {
 		}
 	})
 
-	script := Default.Compile([]byte(`println("hello", "world");`), nil, nil)
+	script := Default.Compile([]byte(`println("hello", "world", name);`), nil, nil)
 	exception := context.TryCatch(true, func() {
 		context.Scope(func(context *Context) {
 			global := context.Global()
 			if !global.SetProperty("println", functionTemplate.NewFunction(), PA_None) {
+				t.FailNow()
 			}
 
 			global = context.Global()
 			if !global.HasProperty("println") {
-				println("no println")
-				return
+				t.FailNow()
 			}
+
+			global.SetProperty("name", Default.NewString("v8"), PA_None)
 			script.Run()
 		})
 	})
