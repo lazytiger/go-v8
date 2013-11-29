@@ -1126,7 +1126,7 @@ func Benchmark_TryCatch(b *testing.B) {
 	b.StartTimer()
 
 	for i := 0; i < b.N; i++ {
-		context.TryCatch(true, func() {
+		context.TryCatch(false, func() {
 			Default.Compile([]byte("a[=1;"), nil, nil)
 		})
 	}

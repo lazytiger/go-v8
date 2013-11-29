@@ -296,7 +296,7 @@ char* V8_Context_TryCatch(void* context, void* callback, int simple) {
 		char *cstr = (char*)malloc(exception.length() + 1);
 		std::strcpy(cstr, exception_string);
 
-		V8::CancelTerminateExecution(isolate);
+		//V8::CancelTerminateExecution(isolate);
 		
 		return cstr;
 	}
@@ -337,7 +337,7 @@ char* V8_Context_TryCatch(void* context, void* callback, int simple) {
 	char *cstr = (char*)malloc(report_string.length() +1);
 	std::strcpy(cstr, report_string.c_str());
 	
-	V8::CancelTerminateExecution(isolate);
+	//V8::CancelTerminateExecution(isolate);
 
 	return cstr;
 }
