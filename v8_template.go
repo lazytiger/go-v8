@@ -42,6 +42,7 @@ type accessorInfo struct {
 	key     string
 	getter  GetterCallback
 	setter  SetterCallback
+	data	interface{}
 	attribs PropertyAttribute
 }
 
@@ -126,11 +127,12 @@ func (ot *ObjectTemplate) SetProperty(key string, value *Value, attribs Property
 	)
 }
 
-func (ot *ObjectTemplate) SetAccessor(key string, getter GetterCallback, setter SetterCallback, attribs PropertyAttribute) {
+func (ot *ObjectTemplate) SetAccessor(key string, getter GetterCallback, setter SetterCallback, data interface{}, attribs PropertyAttribute) {
 	info := &accessorInfo{
 		key:     key,
 		getter:  getter,
 		setter:  setter,
+		data:	 data,
 		attribs: attribs,
 	}
 
@@ -143,6 +145,7 @@ func (ot *ObjectTemplate) SetAccessor(key string, getter GetterCallback, setter 
 		(*C.char)(keyPtr), C.int(len(info.key)),
 		unsafe.Pointer(&(info.getter)),
 		unsafe.Pointer(&(info.setter)),
+		unsafe.Pointer(&(info.data)),
 		C.int(info.attribs),
 	)
 }
@@ -160,6 +163,10 @@ func (g GetterCallbackInfo) This() *Object {
 
 func (g GetterCallbackInfo) Holder() *Object {
 	return newValue(C.V8_GetterCallbackInfo_Holder(g.self)).ToObject()
+}
+
+func (g GetterCallbackInfo) Data() interface{} {
+	return *(*interface{})(C.V8_GetterCallbackInfo_Data(g.self))
 }
 
 func (g *GetterCallbackInfo) ReturnValue() ReturnValue {
@@ -181,6 +188,10 @@ func (s SetterCallbackInfo) This() *Object {
 
 func (s SetterCallbackInfo) Holder() *Object {
 	return newValue(C.V8_SetterCallbackInfo_Holder(s.self)).ToObject()
+}
+
+func (s SetterCallbackInfo) Data() interface{} {
+	return *(*interface{})(C.V8_SetterCallbackInfo_Data(s.self))
 }
 
 type GetterCallback func(name string, info GetterCallbackInfo)
@@ -214,6 +225,7 @@ func (o *Object) setAccessor(info *accessorInfo) bool {
 		(*C.char)(keyPtr), C.int(len(info.key)),
 		unsafe.Pointer(&(info.getter)),
 		unsafe.Pointer(&(info.setter)),
+		unsafe.Pointer(&(info.data)),
 		C.int(info.attribs),
 	) == 1
 }

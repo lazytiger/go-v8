@@ -174,17 +174,21 @@ extern void* V8_Object_GetPrototype(void *value);
 
 extern int V8_Object_SetPrototype(void *value, void *proto);
 
-extern int V8_Object_SetAccessor(void *value, const char* key, int key_length, void* getter, void* setter, int attribs);
+extern int V8_Object_SetAccessor(void *value, const char* key, int key_length, void* getter, void* setter, void* data, int attribs);
 
 extern void* V8_GetterCallbackInfo_This(void *info);
 
 extern void* V8_GetterCallbackInfo_Holder(void *info);
+
+extern void* V8_GetterCallbackInfo_Data(void *info);
 
 extern void* V8_GetterCallbackInfo_ReturnValue(void *info);
 
 extern void* V8_SetterCallbackInfo_This(void *info);
 
 extern void* V8_SetterCallbackInfo_Holder(void *info);
+
+extern void* V8_SetterCallbackInfo_Data(void *info);
 
 /*
 array
@@ -249,7 +253,7 @@ extern void V8_ObjectTemplate_SetProperty(void* tpl, const char* key, int key_le
 
 extern void* V8_ObjectTemplate_NewObject(void* tpl);
 
-extern void V8_ObjectTemplate_SetAccessor(void *tpl, const char* key, int key_length, void* getter, void* setter, int attribs);
+extern void V8_ObjectTemplate_SetAccessor(void *tpl, const char* key, int key_length, void* getter, void* setter, void* data, int attribs);
 
 /*
 function template

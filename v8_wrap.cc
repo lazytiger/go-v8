@@ -741,6 +741,7 @@ typedef struct {
 	const PropertyCallbackInfo<Value>* getter_info;
 	const PropertyCallbackInfo<void>*  setter_info;
 	V8_ReturnValue*                    returnValue;
+	void*				   data;
 } V8_AccessorCallbackInfo;
 
 extern void go_getter_callback(char* key, int key_length, void* info, void* callback);
@@ -756,6 +757,7 @@ void V8_GetterCallback(Local<String> property, const PropertyCallbackInfo<Value>
 	callback_info.engine = (V8_Context*)Local<External>::Cast(callback_data->Get(0))->Value();
 	callback_info.getter_info = &info;
 	callback_info.setter_info = NULL;
+	callback_info.data = Local<External>::Cast(callback_data->Get(5))->Value();
 	callback_info.returnValue = NULL;
 
 	void* callback = Local<External>::Cast(callback_data->Get(1))->Value();
@@ -784,6 +786,7 @@ void V8_SetterCallback(Local<String> property, Local<Value> value, const Propert
 	callback_info.engine = (V8_Context*)Local<External>::Cast(callback_data->Get(0))->Value();
 	callback_info.getter_info = NULL;
 	callback_info.setter_info = &info;
+	callback_info.data = Local<External>::Cast(callback_data->Get(5))->Value();
 	callback_info.returnValue = NULL;
 
 	void* callback = Local<External>::Cast(callback_data->Get(2))->Value();
@@ -803,7 +806,7 @@ void V8_SetterCallback(Local<String> property, Local<Value> value, const Propert
 		delete callback_info.returnValue;
 }
 
-int V8_Object_SetAccessor(void *value, const char* key, int key_length, void* getter, void* setter, int attribs) {
+int V8_Object_SetAccessor(void *value, const char* key, int key_length, void* getter, void* setter, void* data, int attribs) {
 	VALUE_SCOPE(value);
 
 	Handle<Array> callback_info = Array::New(3);
@@ -812,6 +815,7 @@ int V8_Object_SetAccessor(void *value, const char* key, int key_length, void* ge
 	callback_info->Set(2, External::New(setter));
 	callback_info->Set(3, External::New((void*)key));
 	callback_info->Set(4, Integer::New(key_length));
+	callback_info->Set(5, External::New(data));
 
 	if (callback_info.IsEmpty())
 		return 0;
@@ -833,6 +837,12 @@ void* V8_GetterCallbackInfo_Holder(void *info) {
 	V8_AccessorCallbackInfo* the_info = (V8_AccessorCallbackInfo*)info;
 	ENGINE_SCOPE(the_info->engine);
 	return new_V8_Value(the_info->engine, the_info->getter_info->Holder());
+}
+
+void* V8_GetterCallbackInfo_Data(void *info) {
+	V8_AccessorCallbackInfo* the_info = (V8_AccessorCallbackInfo*)info;
+	ENGINE_SCOPE(the_info->engine);
+	return the_info->data;
 }
 
 void* V8_GetterCallbackInfo_ReturnValue(void *info) {
@@ -857,6 +867,13 @@ void* V8_SetterCallbackInfo_Holder(void *info) {
 	ENGINE_SCOPE(the_info->engine);
 	return new_V8_Value(the_info->engine, the_info->setter_info->Holder());
 }
+
+void* V8_SetterCallbackInfo_Data(void *info) {
+	V8_AccessorCallbackInfo* the_info = (V8_AccessorCallbackInfo*)info;
+	ENGINE_SCOPE(the_info->engine);
+	return the_info->data;
+}
+
 
 /*
 array
@@ -1076,7 +1093,7 @@ void* V8_ObjectTemplate_NewObject(void* tpl) {
 	return new_V8_Value(the_template->engine, local_template->NewInstance());
 }
 
-void V8_ObjectTemplate_SetAccessor(void *tpl, const char* key, int key_length, void* getter, void* setter, int attribs) {
+void V8_ObjectTemplate_SetAccessor(void *tpl, const char* key, int key_length, void* getter, void* setter, void* data, int attribs) {
 	OBJECT_TEMPLATE_SCOPE(tpl);
 
 	Handle<Array> callback_info = Array::New(3);
@@ -1085,6 +1102,7 @@ void V8_ObjectTemplate_SetAccessor(void *tpl, const char* key, int key_length, v
 	callback_info->Set(2, External::New(setter));
 	callback_info->Set(3, External::New((void*)key));
 	callback_info->Set(4, Integer::New(key_length));
+	callback_info->Set(5, External::New(data));
 
 	if (callback_info.IsEmpty())
 		return;
