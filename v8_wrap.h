@@ -217,7 +217,7 @@ extern void* V8_Object_GetPrototype(void *value);
 
 extern int V8_Object_SetPrototype(void *value, void *proto);
 
-extern int V8_Object_SetAccessor(void *value, const char* key, int key_length, void* getter, void* setter, void* data, int attribs);
+extern void V8_Object_SetAccessor(void *value, const char* key, int key_length, void* getter, void* setter, void* data, int attribs);
 
 extern void* V8_AccessorCallbackInfo_This(void *info, AccessorDataEnum type);
 
@@ -299,6 +299,7 @@ extern void V8_ObjectTemplate_SetAccessor(void *tpl, const char* key, int key_le
 extern void V8_ObjectTemplate_SetNamedPropertyHandler(void* tpl, void* getter, void* setter, void* query, void* deleter, void* enumerator, void* data);
 
 extern void V8_ObjectTemplate_SetIndexedPropertyHandler(void* tpl, void* getter, void* setter, void* query, void* deleter, void* enumerator, void* data);
+
 /*
 function template
 */

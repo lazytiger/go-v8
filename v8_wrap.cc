@@ -161,28 +161,6 @@ public:
 	ISOLATE_SCOPE(the_template->GetIsolate()); \
 	Local<FunctionTemplate> local_template = Local<FunctionTemplate>::New(isolate, the_template->self) \
 
-#define OBJECT_TEMPLATE_NAMED_PROPERTY(typ, has_key, property) \
-	v8::Isolate* isolate_ptr = info.GetIsolate(); \
-        ISOLATE_SCOPE(isolate_ptr); \
-        Local<Array> callback_data = Local<Array>::Cast(info.Data()); \
-        V8_PropertyCallbackInfo callback_info; \
-        callback_info.engine = Local<External>::Cast(callback_data->Get(OTP_Context))->Value(); \
-        callback_info.info = (void*)&info; \
-        callback_info.returnValue = NULL; \
-        callback_info.data = Local<External>::Cast(callback_data->Get(OTP_Data))->Value(); \
-        callback_info.callback = Local<External>::Cast(callback_data->Get(typ))->Value(); \
-	if (has_key) { \
-		String::Utf8Value key(property); \
-		callback_info.key = *key; \
-	} \
-	go_named_property_callback( \
-		typ, \
-		&callback_info \
-	); \
-	if (callback_info.returnValue != NULL) \
-		delete static_cast<V8_ReturnValue*>(callback_info.returnValue)
-
-
 void* new_V8_Value(V8_Context* the_engine, Handle<Value> value) {
 	if (value.IsEmpty())
 		return NULL;
@@ -809,42 +787,89 @@ void V8_AccessorSetterCallback(Local<String> property, Local<Value> value, const
 		delete static_cast<V8_ReturnValue*>(callback_info.returnValue);
 }
 
-void V8_NamedPropertyDeleterCallback(Local< String > property, const PropertyCallbackInfo< Boolean > &info) {
-	OBJECT_TEMPLATE_NAMED_PROPERTY(OTP_Deleter, true, property);
-}
+#define OBJECT_TEMPLATE_NAMED_PROPERTY(typ, has_key, property) \
+	v8::Isolate* isolate_ptr = info.GetIsolate(); \
+    ISOLATE_SCOPE(isolate_ptr); \
+    Local<Array> callback_data = Local<Array>::Cast(info.Data()); \
+    V8_PropertyCallbackInfo callback_info; \
+    callback_info.engine = Local<External>::Cast(callback_data->Get(OTP_Context))->Value(); \
+    callback_info.info = (void*)&info; \
+    callback_info.returnValue = NULL; \
+    callback_info.data = Local<External>::Cast(callback_data->Get(OTP_Data))->Value(); \
+    callback_info.callback = Local<External>::Cast(callback_data->Get(typ))->Value(); \
+    callback_info.key = NULL; \
+	if (has_key) { \
+		String::Utf8Value key(property); \
+		callback_info.key = *key; \
+	} \
+	go_named_property_callback( \
+		typ, \
+		&callback_info \
+	); \
+	if (callback_info.returnValue != NULL) \
+		delete static_cast<V8_ReturnValue*>(callback_info.returnValue)
 
-void V8_NamedPropertyEnumeratorCallback(const PropertyCallbackInfo< Array > &info) {
-	Local<String> dummy;
-	OBJECT_TEMPLATE_NAMED_PROPERTY(OTP_Deleter, false, dummy);
-}
-
-void V8_NamedPropertyGetterCallback(Local< String > property, const PropertyCallbackInfo< Value > &info) {
+void V8_NamedPropertyGetterCallback(Local<String> property, const PropertyCallbackInfo<Value> &info) {
 	OBJECT_TEMPLATE_NAMED_PROPERTY(OTP_Getter, true, property);
 }
 
-void V8_NamedPropertyQueryCallback(Local< String > property, const PropertyCallbackInfo< Integer > &info) {
-	OBJECT_TEMPLATE_NAMED_PROPERTY(OTP_Query, true, property);
-}
-
-void V8_NamedPropertySetterCallback(Local< String > property, Local< Value > value, const PropertyCallbackInfo< Value > &info) {
+void V8_NamedPropertySetterCallback(Local<String> property, Local<Value> value, const PropertyCallbackInfo<Value> &info) {
 	OBJECT_TEMPLATE_NAMED_PROPERTY(OTP_Setter, true, property);
 }
 
-void V8_IndexedPropertyDeleterCallback(uint32_t index, const PropertyCallbackInfo< Boolean > &info) {
+void V8_NamedPropertyDeleterCallback(Local<String> property, const PropertyCallbackInfo<Boolean> &info) {
+	OBJECT_TEMPLATE_NAMED_PROPERTY(OTP_Deleter, true, property);
 }
 
-void V8_IndexedPropertyEnumeratorCallback(const PropertyCallbackInfo< Array > &info) {
+void V8_NamedPropertyQueryCallback(Local<String> property, const PropertyCallbackInfo<Integer> &info) {
+	OBJECT_TEMPLATE_NAMED_PROPERTY(OTP_Query, true, property);
 }
 
-void V8_IndexedPropertyGetterCallback(uint32_t index, const PropertyCallbackInfo< Value > &info) {
+void V8_NamedPropertyEnumeratorCallback(const PropertyCallbackInfo<Array> &info) {
+	Local<String> dummy;
+	OBJECT_TEMPLATE_NAMED_PROPERTY(OTP_Enumerator, false, dummy);
 }
 
-void V8_IndexedPropertyQueryCallback(uint32_t index, const PropertyCallbackInfo< Integer > &info) {
+#define OBJECT_TEMPLATE_INDEXED_PROPERTY(typ, mindex) \
+	v8::Isolate* isolate_ptr = info.GetIsolate(); \
+    ISOLATE_SCOPE(isolate_ptr); \
+    Local<Array> callback_data = Local<Array>::Cast(info.Data()); \
+    V8_PropertyCallbackInfo callback_info; \
+    callback_info.engine = Local<External>::Cast(callback_data->Get(OTP_Context))->Value(); \
+    callback_info.info = (void*)&info; \
+    callback_info.returnValue = NULL; \
+    callback_info.data = Local<External>::Cast(callback_data->Get(OTP_Data))->Value(); \
+    callback_info.callback = Local<External>::Cast(callback_data->Get(typ))->Value(); \
+    callback_info.index = mindex; \
+	go_indexed_property_callback( \
+		typ, \
+		&callback_info \
+	); \
+	if (callback_info.returnValue != NULL) \
+		delete static_cast<V8_ReturnValue*>(callback_info.returnValue)
+
+void V8_IndexedPropertyGetterCallback(uint32_t index, const PropertyCallbackInfo<Value> &info) {
+	OBJECT_TEMPLATE_INDEXED_PROPERTY(OTP_Getter, index);
 }
 
-void V8_IndexedPropertySetterCallback(uint32_t index, Local< Value > value, const PropertyCallbackInfo< Value > &info) {
+void V8_IndexedPropertySetterCallback(uint32_t index, Local<Value> value, const PropertyCallbackInfo<Value> &info) {
+	OBJECT_TEMPLATE_INDEXED_PROPERTY(OTP_Setter, index);
 }
-int V8_Object_SetAccessor(void *value, const char* key, int key_length, void* getter, void* setter, void* data, int attribs) {
+
+void V8_IndexedPropertyDeleterCallback(uint32_t index, const PropertyCallbackInfo<Boolean> &info) {
+	OBJECT_TEMPLATE_INDEXED_PROPERTY(OTP_Deleter, index);
+}
+
+void V8_IndexedPropertyQueryCallback(uint32_t index, const PropertyCallbackInfo<Integer> &info) {
+	OBJECT_TEMPLATE_INDEXED_PROPERTY(OTP_Query, index);
+}
+
+void V8_IndexedPropertyEnumeratorCallback(const PropertyCallbackInfo<Array> &info) {
+	OBJECT_TEMPLATE_INDEXED_PROPERTY(OTP_Enumerator, 0);
+}
+
+// sync with V8_ObjectTemplate_SetAccessor
+void V8_Object_SetAccessor(void *value, const char* key, int key_length, void* getter, void* setter, void* data, int attribs) {
 	VALUE_SCOPE(value);
 
 	Handle<Array> callback_info = Array::New(OTA_Num);
@@ -856,9 +881,9 @@ int V8_Object_SetAccessor(void *value, const char* key, int key_length, void* ge
 	callback_info->Set(OTA_Data, External::New(data));
 
 	if (callback_info.IsEmpty())
-		return 0;
+		return;
 
-	return Local<Object>::Cast(local_value)->SetAccessor(
+	Local<Object>::Cast(local_value)->SetAccessor(
 		String::NewFromOneByte(isolate, (uint8_t*)key, String::kNormalString, key_length),
 		V8_AccessorGetterCallback, setter == NULL ? NULL : V8_AccessorSetterCallback,
  		callback_info
@@ -917,32 +942,32 @@ void* V8_PropertyCallbackInfo_ReturnValue(void *info,  PropertyDataEnum typ) {
 			the_info->returnValue = new V8_ReturnValue(
 				engine,
 				static_cast<PropertyCallbackInfo<Value>*>(the_info->info)->GetReturnValue()
-				);
-				break;
+			);
+			break;
 		case OTP_Setter:
 			the_info->returnValue = new V8_ReturnValue(
 				engine,
 				static_cast<PropertyCallbackInfo<Value>*>(the_info->info)->GetReturnValue()
-				);
-				break;
+			);
+			break;
 		case OTP_Deleter:
 			the_info->returnValue = new V8_ReturnValue(
 				engine,
-				ReturnValue<Value>(static_cast<PropertyCallbackInfo<Value>*>(the_info->info)->GetReturnValue())
-				);
-				break;
+				ReturnValue<Value>(static_cast<PropertyCallbackInfo<Boolean>*>(the_info->info)->GetReturnValue())
+			);
+			break;
 		case OTP_Query:
 			the_info->returnValue = new V8_ReturnValue(
 				engine,
-				ReturnValue<Value>(static_cast<PropertyCallbackInfo<Value>*>(the_info->info)->GetReturnValue())
-				);
-				break;
+				ReturnValue<Value>(static_cast<PropertyCallbackInfo<Integer>*>(the_info->info)->GetReturnValue())
+			);
+			break;
 		case OTP_Enumerator:
 			the_info->returnValue = new V8_ReturnValue(
 				engine,
-				ReturnValue<Value>(static_cast<PropertyCallbackInfo<Value>*>(the_info->info)->GetReturnValue())
-				);
-				break;
+				ReturnValue<Value>(static_cast<PropertyCallbackInfo<Array>*>(the_info->info)->GetReturnValue())
+			);
+			break;
 		}
 	}
 	return the_info->returnValue;
@@ -985,7 +1010,7 @@ void* V8_AccessorCallbackInfo_ReturnValue(void *info, AccessorDataEnum typ) {
 			the_info->returnValue = new V8_ReturnValue(
 				engine,
 				static_cast<PropertyCallbackInfo<Value>*>(the_info->info)->GetReturnValue()
-				);
+			);
 		}
 	}
 	return the_info->returnValue;
@@ -1209,6 +1234,7 @@ void* V8_ObjectTemplate_NewObject(void* tpl) {
 	return new_V8_Value(the_template->engine, local_template->NewInstance());
 }
 
+// sync with V8_Object_SetAccessor
 void V8_ObjectTemplate_SetAccessor(void *tpl, const char* key, int key_length, void* getter, void* setter, void* data, int attribs) {
 	OBJECT_TEMPLATE_SCOPE(tpl);
 
@@ -1230,7 +1256,8 @@ void V8_ObjectTemplate_SetAccessor(void *tpl, const char* key, int key_length, v
 	);
 }
 
-extern void V8_ObjectTemplate_SetNamedPropertyHandler(void* tpl, void* getter, void* setter, void* query, void* deleter, void* enumerator, void* data) {
+// sync with V8_Object_SetNamedPropertyHandler
+void V8_ObjectTemplate_SetNamedPropertyHandler(void* tpl, void* getter, void* setter, void* query, void* deleter, void* enumerator, void* data) {
 	OBJECT_TEMPLATE_SCOPE(tpl);
 
 	Handle<Array> callback_info = Array::New(OTP_Num);
@@ -1255,7 +1282,8 @@ extern void V8_ObjectTemplate_SetNamedPropertyHandler(void* tpl, void* getter, v
 	);
 }
 
-extern void V8_ObjectTemplate_SetIndexedPropertyHandler(void* tpl, void* getter, void* setter, void* query, void* deleter, void* enumerator, void* data) {
+// sync with V8_Object_SetIndexedPropertyHandler
+void V8_ObjectTemplate_SetIndexedPropertyHandler(void* tpl, void* getter, void* setter, void* query, void* deleter, void* enumerator, void* data) {
 	OBJECT_TEMPLATE_SCOPE(tpl);
 	
 	Handle<Array> callback_info = Array::New(OTP_Num);

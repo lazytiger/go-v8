@@ -159,7 +159,13 @@ func (ot *ObjectTemplate) SetProperty(key string, value *Value, attribs Property
 	)
 }
 
-func (ot *ObjectTemplate) SetAccessor(key string, getter GetterCallback, setter SetterCallback, data interface{}, attribs PropertyAttribute) {
+func (ot *ObjectTemplate) SetAccessor(
+	key string,
+	getter GetterCallback,
+	setter SetterCallback,
+	data interface{},
+	attribs PropertyAttribute,
+) {
 	info := &accessorInfo{
 		key:     key,
 		getter:  getter,
@@ -188,7 +194,8 @@ func (ot *ObjectTemplate) SetNamedPropertyHandler(
 	query NamedPropertyQueryCallback,
 	deleter NamedPropertyDeleterCallback,
 	enumerator NamedPropertyEnumeratorCallback,
-	data interface{}) {
+	data interface{},
+) {
 	info := &namedPropertyInfo{
 		getter:     getter,
 		setter:     setter,
@@ -217,7 +224,8 @@ func (ot *ObjectTemplate) SetIndexedPropertyHandler(
 	query IndexedPropertyQueryCallback,
 	deleter IndexedPropertyDeleterCallback,
 	enumerator IndexedPropertyEnumeratorCallback,
-	data interface{}) {
+	data interface{},
+) {
 	info := &indexedPropertyInfo{
 		getter:     getter,
 		setter:     setter,
@@ -340,22 +348,64 @@ func go_accessor_callback(typ C.AccessorDataEnum, info *C.V8_AccessorCallbackInf
 
 //export go_named_property_callback
 func go_named_property_callback(typ C.PropertyDataEnum, info *C.V8_PropertyCallbackInfo) {
+	gname := ""
+	if info.key != nil {
+		gname = C.GoString(info.key)
+	}
+	switch typ {
+	case C.OTP_Getter:
+		(*(*NamedPropertyGetterCallback)(info.callback))(
+			gname, PropertyCallbackInfo{unsafe.Pointer(info), typ, *(*interface{})(info.data), ReturnValue{}})
+	case C.OTP_Setter:
+		(*(*NamedPropertySetterCallback)(info.callback))(
+			gname,
+			newValue(info.setValue),
+			PropertyCallbackInfo{unsafe.Pointer(info), typ, *(*interface{})(info.data), ReturnValue{}})
+	case C.OTP_Deleter:
+		(*(*NamedPropertyDeleterCallback)(info.callback))(
+			gname, PropertyCallbackInfo{unsafe.Pointer(info), typ, *(*interface{})(info.data), ReturnValue{}})
+	case C.OTP_Query:
+		(*(*NamedPropertyQueryCallback)(info.callback))(
+			gname, PropertyCallbackInfo{unsafe.Pointer(info), typ, *(*interface{})(info.data), ReturnValue{}})
+	case C.OTP_Enumerator:
+		(*(*NamedPropertyEnumeratorCallback)(info.callback))(
+			PropertyCallbackInfo{unsafe.Pointer(info), typ, *(*interface{})(info.data), ReturnValue{}})
+	}
 }
 
 //export go_indexed_property_callback
 func go_indexed_property_callback(typ C.PropertyDataEnum, info *C.V8_PropertyCallbackInfo) {
+	switch typ {
+	case C.OTP_Getter:
+		(*(*IndexedPropertyGetterCallback)(info.callback))(
+			uint32(info.index), PropertyCallbackInfo{unsafe.Pointer(info), typ, *(*interface{})(info.data), ReturnValue{}})
+	case C.OTP_Setter:
+		(*(*IndexedPropertySetterCallback)(info.callback))(
+			uint32(info.index),
+			newValue(info.setValue),
+			PropertyCallbackInfo{unsafe.Pointer(info), typ, *(*interface{})(info.data), ReturnValue{}})
+	case C.OTP_Deleter:
+		(*(*IndexedPropertyDeleterCallback)(info.callback))(
+			uint32(info.index), PropertyCallbackInfo{unsafe.Pointer(info), typ, *(*interface{})(info.data), ReturnValue{}})
+	case C.OTP_Query:
+		(*(*IndexedPropertyQueryCallback)(info.callback))(
+			uint32(info.index), PropertyCallbackInfo{unsafe.Pointer(info), typ, *(*interface{})(info.data), ReturnValue{}})
+	case C.OTP_Enumerator:
+		(*(*IndexedPropertyEnumeratorCallback)(info.callback))(
+			PropertyCallbackInfo{unsafe.Pointer(info), typ, *(*interface{})(info.data), ReturnValue{}})
+	}
 }
 
-func (o *Object) setAccessor(info *accessorInfo) bool {
+func (o *Object) setAccessor(info *accessorInfo) {
 	keyPtr := unsafe.Pointer((*reflect.StringHeader)(unsafe.Pointer(&info.key)).Data)
-	return C.V8_Object_SetAccessor(
+	C.V8_Object_SetAccessor(
 		o.self,
 		(*C.char)(keyPtr), C.int(len(info.key)),
 		unsafe.Pointer(&(info.getter)),
 		unsafe.Pointer(&(info.setter)),
 		unsafe.Pointer(&(info.data)),
 		C.int(info.attribs),
-	) == 1
+	)
 }
 
 // A JavaScript function object (ECMA-262, 15.3).
