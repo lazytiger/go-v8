@@ -180,15 +180,11 @@ extern void* V8_GetterCallbackInfo_This(void *info);
 
 extern void* V8_GetterCallbackInfo_Holder(void *info);
 
-extern void* V8_GetterCallbackInfo_Data(void *info);
-
 extern void* V8_GetterCallbackInfo_ReturnValue(void *info);
 
 extern void* V8_SetterCallbackInfo_This(void *info);
 
 extern void* V8_SetterCallbackInfo_Holder(void *info);
-
-extern void* V8_SetterCallbackInfo_Data(void *info);
 
 /*
 array

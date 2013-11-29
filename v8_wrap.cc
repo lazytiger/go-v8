@@ -7,6 +7,8 @@
 
 extern "C" {
 
+#include "_cgo_export.h"
+
 using namespace v8;
 
 class V8_Context {
@@ -81,7 +83,7 @@ public:
 };
 
 typedef struct V8_ReturnValue {
-	V8_ReturnValue(V8_Context* the_engine, ReturnValue<Value> the_value) : 
+	V8_ReturnValue(V8_Context* the_engine, ReturnValue<Value> the_value) :
 		engine(the_engine),
 		value(the_value) {
 	}
@@ -195,7 +197,7 @@ void V8_DisposeEngine(void* engine) {
 
 void* V8_ParseJSON(void* engine, const char* json, int json_length) {
 	ENGINE_SCOPE(engine);
-	
+
 	Handle<Value> value = JSON::Parse(
 		String::NewFromOneByte(isolate, (uint8_t*)json, String::kNormalString, json_length)
 	);
@@ -213,9 +215,9 @@ void* V8_NewContext(void* engine, void* global_template) {
 	V8_Context* the_engine = static_cast<V8_Context*>(engine);
 
 	ISOLATE_SCOPE(the_engine->GetIsolate());
-	
+
 	Handle<Context> context = Context::New(
-		isolate, NULL, 
+		isolate, NULL,
 		global_template == NULL ? Handle<ObjectTemplate>() : Local<ObjectTemplate>::New(
 			isolate, static_cast<V8_ObjectTemplate*>(global_template)->self
 		)
@@ -297,7 +299,7 @@ char* V8_Context_TryCatch(void* context, void* callback, int simple) {
 		std::strcpy(cstr, exception_string);
 
 		//V8::CancelTerminateExecution(isolate);
-		
+
 		return cstr;
 	}
 
@@ -336,7 +338,7 @@ char* V8_Context_TryCatch(void* context, void* callback, int simple) {
 	std::string report_string = report.str();
 	char *cstr = (char*)malloc(report_string.length() +1);
 	std::strcpy(cstr, report_string.c_str());
-	
+
 	//V8::CancelTerminateExecution(isolate);
 
 	return cstr;
@@ -349,8 +351,8 @@ void* V8_Compile(void* engine, const char* code, int length, void* script_origin
 	ENGINE_SCOPE(engine);
 
 	Handle<Script> script = Script::New(
-		String::NewFromOneByte(isolate, (uint8_t*)code, String::kNormalString, length), 
-		static_cast<ScriptOrigin*>(script_origin), 
+		String::NewFromOneByte(isolate, (uint8_t*)code, String::kNormalString, length),
+		static_cast<ScriptOrigin*>(script_origin),
 		static_cast<ScriptData*>(script_data),
 		Handle<String>()
 	);
@@ -369,7 +371,7 @@ void* V8_Script_Run(void* script) {
 	V8_Script* the_script = static_cast<V8_Script*>(script);
 	ISOLATE_SCOPE(the_script->engine->GetIsolate());
 	Local<Script> local_script = Local<Script>::New(isolate, the_script->self);
-	
+
 	return new_V8_Value(the_script->engine, local_script->Run());
 }
 
@@ -529,7 +531,7 @@ int V8_Value_ToBoolean(void* value) {
 	VALUE_SCOPE(value);
 	return local_value->BooleanValue();
 }
-  
+
 double V8_Value_ToNumber(void* value) {
 	VALUE_SCOPE(value);
 	return local_value->NumberValue();
@@ -586,14 +588,14 @@ void* V8_False(void* engine) {
 
 void* V8_NewNumber(void* engine, double val) {
 	ENGINE_SCOPE(engine);
-	
+
 	return new_V8_Value(the_engine, Number::New(isolate, val));
 }
 
 void* V8_NewString(void* engine, const char* val, int val_length) {
 	ENGINE_SCOPE(engine);
-	
-	return new_V8_Value(the_engine, 
+
+	return new_V8_Value(the_engine,
 		String::NewFromOneByte(isolate, (uint8_t*)val, String::kNormalString, val_length)
 	);
 }
@@ -741,11 +743,20 @@ typedef struct {
 	const PropertyCallbackInfo<Value>* getter_info;
 	const PropertyCallbackInfo<void>*  setter_info;
 	V8_ReturnValue*                    returnValue;
-	void*				   data;
 } V8_AccessorCallbackInfo;
 
-extern void go_getter_callback(char* key, int key_length, void* info, void* callback);
-extern void go_setter_callback(char* key, int key_length, void* value, void* info, void* callback);
+typedef struct {
+	V8_Context*								engine;
+	const PropertyCallbackInfo<Value>*		getter_info;
+	const PropertyCallbackInfo<Value>*		setter_info;
+	const PropertyCallbackInfo<Integer>*	query_info;
+	const PropertyCallbackInfo<Boolean>*	deleter_info;
+	const PropertyCallbackInfo<Array>*		enumerator_info;
+	V8_ReturnValue*							returnValue;
+}V8_PropertyCallbackInfo;
+
+//extern void go_getter_callback(char* key, int key_length, void* info, void* callback);
+//extern void go_setter_callback(char* key, int key_length, void* value, void* info, void* callback);
 
 void V8_GetterCallback(Local<String> property, const PropertyCallbackInfo<Value>& info) {
 	v8::Isolate* isolate = v8::Isolate::GetCurrent();
@@ -757,8 +768,9 @@ void V8_GetterCallback(Local<String> property, const PropertyCallbackInfo<Value>
 	callback_info.engine = (V8_Context*)Local<External>::Cast(callback_data->Get(0))->Value();
 	callback_info.getter_info = &info;
 	callback_info.setter_info = NULL;
-	callback_info.data = Local<External>::Cast(callback_data->Get(5))->Value();
 	callback_info.returnValue = NULL;
+
+	void* data = Local<External>::Cast(callback_data->Get(5))->Value();
 
 	void* callback = Local<External>::Cast(callback_data->Get(1))->Value();
 
@@ -768,8 +780,9 @@ void V8_GetterCallback(Local<String> property, const PropertyCallbackInfo<Value>
 
 	go_getter_callback(
 		(char*)key, key_length,
-		&callback_info, 
-		callback
+		&callback_info,
+		callback,
+		data
 	);
 
 	if (callback_info.returnValue != NULL)
@@ -786,8 +799,9 @@ void V8_SetterCallback(Local<String> property, Local<Value> value, const Propert
 	callback_info.engine = (V8_Context*)Local<External>::Cast(callback_data->Get(0))->Value();
 	callback_info.getter_info = NULL;
 	callback_info.setter_info = &info;
-	callback_info.data = Local<External>::Cast(callback_data->Get(5))->Value();
 	callback_info.returnValue = NULL;
+
+	void* data = Local<External>::Cast(callback_data->Get(5))->Value();
 
 	void* callback = Local<External>::Cast(callback_data->Get(2))->Value();
 
@@ -797,9 +811,10 @@ void V8_SetterCallback(Local<String> property, Local<Value> value, const Propert
 
 	go_setter_callback(
 		(char*)key, key_length,
-		new_V8_Value(callback_info.engine, value), 
-		&callback_info, 
-		callback
+		new_V8_Value(callback_info.engine, value),
+		&callback_info,
+		callback,
+		data
 	);
 
 	if (callback_info.returnValue != NULL)
@@ -839,17 +854,11 @@ void* V8_GetterCallbackInfo_Holder(void *info) {
 	return new_V8_Value(the_info->engine, the_info->getter_info->Holder());
 }
 
-void* V8_GetterCallbackInfo_Data(void *info) {
-	V8_AccessorCallbackInfo* the_info = (V8_AccessorCallbackInfo*)info;
-	ENGINE_SCOPE(the_info->engine);
-	return the_info->data;
-}
-
 void* V8_GetterCallbackInfo_ReturnValue(void *info) {
 	V8_AccessorCallbackInfo* the_info = (V8_AccessorCallbackInfo*)info;
 	if (the_info->returnValue == NULL) {
 		the_info->returnValue = new V8_ReturnValue(
-			the_info->engine, 
+			the_info->engine,
 			the_info->getter_info->GetReturnValue()
 		);;
 	}
@@ -867,13 +876,6 @@ void* V8_SetterCallbackInfo_Holder(void *info) {
 	ENGINE_SCOPE(the_info->engine);
 	return new_V8_Value(the_info->engine, the_info->setter_info->Holder());
 }
-
-void* V8_SetterCallbackInfo_Data(void *info) {
-	V8_AccessorCallbackInfo* the_info = (V8_AccessorCallbackInfo*)info;
-	ENGINE_SCOPE(the_info->engine);
-	return the_info->data;
-}
-
 
 /*
 array
@@ -895,7 +897,7 @@ void* V8_NewRegExp(void* engine, const char* pattern, int length, int flags) {
 	ENGINE_SCOPE(engine);
 
 	return new_V8_Value(the_engine, RegExp::New(
-		String::NewFromOneByte(isolate, (uint8_t*)pattern, String::kNormalString, length), 
+		String::NewFromOneByte(isolate, (uint8_t*)pattern, String::kNormalString, length),
 		(RegExp::Flags)flags
 	));
 }
@@ -1013,7 +1015,7 @@ void* V8_Function_Call(void* value, int argc, void* argv) {
 		real_argv[i] = Local<Value>::New(isolate, static_cast<V8_Value*>(argv_ptr[i])->self);
 	}
 
-	void* result = new_V8_Value(the_value->engine, 
+	void* result = new_V8_Value(the_value->engine,
 		Local<Function>::Cast(local_value)->Call(local_value, argc, real_argv)
 	);
 
@@ -1056,7 +1058,7 @@ void* V8_FunctionCallbackInfo_ReturnValue(void* info) {
 	V8_FunctionCallbackInfo* the_info = (V8_FunctionCallbackInfo*)info;
 	if (the_info->returnValue == NULL) {
 		the_info->returnValue = new V8_ReturnValue(
-			the_info->engine, 
+			the_info->engine,
 			the_info->info->GetReturnValue()
 		);;
 	}

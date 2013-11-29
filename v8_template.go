@@ -42,7 +42,7 @@ type accessorInfo struct {
 	key     string
 	getter  GetterCallback
 	setter  SetterCallback
-	data	interface{}
+	data    interface{}
 	attribs PropertyAttribute
 }
 
@@ -132,7 +132,7 @@ func (ot *ObjectTemplate) SetAccessor(key string, getter GetterCallback, setter 
 		key:     key,
 		getter:  getter,
 		setter:  setter,
-		data:	 data,
+		data:    data,
 		attribs: attribs,
 	}
 
@@ -150,10 +150,14 @@ func (ot *ObjectTemplate) SetAccessor(key string, getter GetterCallback, setter 
 	)
 }
 
+func (ot *ObjectTemplate) SetNamedPropertyHandler(getter GetterCallback, setter SetterCallback, data interface{}) {
+}
+
 // Property getter callback info
 //
 type GetterCallbackInfo struct {
 	self        unsafe.Pointer
+	data        interface{}
 	returnValue ReturnValue
 }
 
@@ -166,7 +170,7 @@ func (g GetterCallbackInfo) Holder() *Object {
 }
 
 func (g GetterCallbackInfo) Data() interface{} {
-	return *(*interface{})(C.V8_GetterCallbackInfo_Data(g.self))
+	return g.data
 }
 
 func (g *GetterCallbackInfo) ReturnValue() ReturnValue {
@@ -180,6 +184,7 @@ func (g *GetterCallbackInfo) ReturnValue() ReturnValue {
 //
 type SetterCallbackInfo struct {
 	self unsafe.Pointer
+	data interface{}
 }
 
 func (s SetterCallbackInfo) This() *Object {
@@ -191,7 +196,7 @@ func (s SetterCallbackInfo) Holder() *Object {
 }
 
 func (s SetterCallbackInfo) Data() interface{} {
-	return *(*interface{})(C.V8_SetterCallbackInfo_Data(s.self))
+	return s.data
 }
 
 type GetterCallback func(name string, info GetterCallbackInfo)
@@ -199,23 +204,23 @@ type GetterCallback func(name string, info GetterCallbackInfo)
 type SetterCallback func(name string, value *Value, info SetterCallbackInfo)
 
 //export go_getter_callback
-func go_getter_callback(key *C.char, length C.int, info, callback unsafe.Pointer) {
+func go_getter_callback(key *C.char, length C.int, info, callback unsafe.Pointer, data unsafe.Pointer) {
 	name := reflect.StringHeader{
 		Data: uintptr(unsafe.Pointer(key)),
 		Len:  int(length),
 	}
 	gname := *((*string)(unsafe.Pointer(&name)))
-	(*(*GetterCallback)(callback))(gname, GetterCallbackInfo{info, ReturnValue{}})
+	(*(*GetterCallback)(callback))(gname, GetterCallbackInfo{info, *(*interface{})(data), ReturnValue{}})
 }
 
 //export go_setter_callback
-func go_setter_callback(key *C.char, length C.int, value, info, callback unsafe.Pointer) {
+func go_setter_callback(key *C.char, length C.int, value, info, callback unsafe.Pointer, data unsafe.Pointer) {
 	name := reflect.StringHeader{
 		Data: uintptr(unsafe.Pointer(key)),
 		Len:  int(length),
 	}
 	gname := *((*string)(unsafe.Pointer(&name)))
-	(*(*SetterCallback)(callback))(gname, newValue(value), SetterCallbackInfo{info})
+	(*(*SetterCallback)(callback))(gname, newValue(value), SetterCallbackInfo{info, *(*interface{})(data)})
 }
 
 func (o *Object) setAccessor(info *accessorInfo) bool {
