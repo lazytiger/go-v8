@@ -31,33 +31,32 @@ const (
 
 type ObjectTemplate struct {
 	sync.Mutex
-	id         int
-	engine     *Engine
-	accessors  map[string]*accessorInfo
-	namedInfo *namedPropertyInfo
+	id          int
+	engine      *Engine
+	accessors   map[string]*accessorInfo
+	namedInfo   *namedPropertyInfo
 	indexedInfo *indexedPropertyInfo
-	properties map[string]*propertyInfo
-	self       unsafe.Pointer
+	properties  map[string]*propertyInfo
+	self        unsafe.Pointer
 }
 
 type namedPropertyInfo struct {
-	getter NamedPropertyGetterCallback
-	setter NamedPropertySetterCallback
-	deleter NamedPropertyDeleterCallback
-	query	NamedPropertyQueryCallback
+	getter     NamedPropertyGetterCallback
+	setter     NamedPropertySetterCallback
+	deleter    NamedPropertyDeleterCallback
+	query      NamedPropertyQueryCallback
 	enumerator NamedPropertyEnumeratorCallback
-	data interface{}
+	data       interface{}
 }
 
 type indexedPropertyInfo struct {
-	getter IndexedPropertyGetterCallback
-	setter IndexedPropertySetterCallback
-	deleter IndexedPropertyDeleterCallback
-	query	IndexedPropertyQueryCallback
+	getter     IndexedPropertyGetterCallback
+	setter     IndexedPropertySetterCallback
+	deleter    IndexedPropertyDeleterCallback
+	query      IndexedPropertyQueryCallback
 	enumerator IndexedPropertyEnumeratorCallback
-	data interface{}
+	data       interface{}
 }
-
 
 type accessorInfo struct {
 	key     string
@@ -184,19 +183,19 @@ func (ot *ObjectTemplate) SetAccessor(key string, getter GetterCallback, setter 
 }
 
 func (ot *ObjectTemplate) SetNamedPropertyHandler(
-	getter NamedPropertyGetterCallback, 
-	setter NamedPropertySetterCallback, 
-	query  NamedPropertyQueryCallback,
+	getter NamedPropertyGetterCallback,
+	setter NamedPropertySetterCallback,
+	query NamedPropertyQueryCallback,
 	deleter NamedPropertyDeleterCallback,
 	enumerator NamedPropertyEnumeratorCallback,
 	data interface{}) {
 	info := &namedPropertyInfo{
-		getter:  getter,
-		setter:  setter,
-		query:	query,
-		deleter: deleter,
-		enumerator:enumerator,
-		data:    data,
+		getter:     getter,
+		setter:     setter,
+		query:      query,
+		deleter:    deleter,
+		enumerator: enumerator,
+		data:       data,
 	}
 
 	ot.namedInfo = info
@@ -213,19 +212,19 @@ func (ot *ObjectTemplate) SetNamedPropertyHandler(
 }
 
 func (ot *ObjectTemplate) SetIndexedPropertyHandler(
-	getter IndexedPropertyGetterCallback, 
-	setter IndexedPropertySetterCallback, 
-	query  IndexedPropertyQueryCallback,
+	getter IndexedPropertyGetterCallback,
+	setter IndexedPropertySetterCallback,
+	query IndexedPropertyQueryCallback,
 	deleter IndexedPropertyDeleterCallback,
 	enumerator IndexedPropertyEnumeratorCallback,
 	data interface{}) {
 	info := &indexedPropertyInfo{
-		getter:  getter,
-		setter:  setter,
-		query:	query,
-		deleter: deleter,
-		enumerator:enumerator,
-		data:    data,
+		getter:     getter,
+		setter:     setter,
+		query:      query,
+		deleter:    deleter,
+		enumerator: enumerator,
+		data:       data,
 	}
 
 	ot.indexedInfo = info
@@ -240,10 +239,11 @@ func (ot *ObjectTemplate) SetIndexedPropertyHandler(
 		unsafe.Pointer(&(info.data)),
 	)
 }
+
 type PropertyCallbackInfo struct {
-	self	unsafe.Pointer
-	typ	C.PropertyDataEnum
-	data	interface{}
+	self        unsafe.Pointer
+	typ         C.PropertyDataEnum
+	data        interface{}
 	returnValue ReturnValue
 }
 
@@ -255,7 +255,7 @@ func (p PropertyCallbackInfo) Holder() *Object {
 	return newValue(C.V8_PropertyCallbackInfo_Holder(p.self, p.typ)).ToObject()
 }
 
-func(p PropertyCallbackInfo) Data() interface{} {
+func (p PropertyCallbackInfo) Data() interface{} {
 	return p.data
 }
 
@@ -326,12 +326,12 @@ func go_accessor_callback(typ C.AccessorDataEnum, info *C.V8_AccessorCallbackInf
 	switch typ {
 	case C.OTA_Getter:
 		(*(*GetterCallback)(info.callback))(
-			gname, 
+			gname,
 			GetterCallbackInfo{unsafe.Pointer(info), *(*interface{})(info.data), ReturnValue{}})
 	case C.OTA_Setter:
 		(*(*SetterCallback)(info.callback))(
-			gname, 
-			newValue(info.setValue), 
+			gname,
+			newValue(info.setValue),
 			SetterCallbackInfo{unsafe.Pointer(info), *(*interface{})(info.data)})
 	default:
 		panic("impossible type")

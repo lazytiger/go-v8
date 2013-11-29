@@ -470,7 +470,7 @@ func Test_Function(t *testing.T) {
 
 func Test_ObjectTemplate(t *testing.T) {
 	template := Default.NewObjectTemplate()
-	var propertyValue int32 
+	var propertyValue int32
 
 	template.SetAccessor(
 		"abc",
