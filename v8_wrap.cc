@@ -1258,14 +1258,14 @@ extern void V8_ObjectTemplate_SetNamedPropertyHandler(void* tpl, void* getter, v
 extern void V8_ObjectTemplate_SetIndexedPropertyHandler(void* tpl, void* getter, void* setter, void* query, void* deleter, void* enumerator, void* data) {
 	OBJECT_TEMPLATE_SCOPE(tpl);
 	
-	Handle<Array> callback_info = Array::New(7);
-	callback_info->Set(0, External::New((void*)the_template->engine));
-	callback_info->Set(1, External::New(getter));
-	callback_info->Set(2, External::New(setter));
-	callback_info->Set(3, External::New(query));
-	callback_info->Set(4, External::New(deleter));
-	callback_info->Set(5, External::New(enumerator));
-	callback_info->Set(6, External::New(data));
+	Handle<Array> callback_info = Array::New(OTP_Num);
+	callback_info->Set(OTP_Context, External::New((void*)the_template->engine));
+	callback_info->Set(OTP_Getter, External::New(getter));
+	callback_info->Set(OTP_Setter, External::New(setter));
+	callback_info->Set(OTP_Query, External::New(query));
+	callback_info->Set(OTP_Deleter, External::New(deleter));
+	callback_info->Set(OTP_Enumerator, External::New(enumerator));
+	callback_info->Set(OTP_Data, External::New(data));
 
 	if (callback_info.IsEmpty())
 		return;

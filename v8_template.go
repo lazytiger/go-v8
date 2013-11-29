@@ -34,9 +34,30 @@ type ObjectTemplate struct {
 	id         int
 	engine     *Engine
 	accessors  map[string]*accessorInfo
+	namedInfo *namedPropertyInfo
+	indexedInfo *indexedPropertyInfo
 	properties map[string]*propertyInfo
 	self       unsafe.Pointer
 }
+
+type namedPropertyInfo struct {
+	getter NamedPropertyGetterCallback
+	setter NamedPropertySetterCallback
+	deleter NamedPropertyDeleterCallback
+	query	NamedPropertyQueryCallback
+	enumerator NamedPropertyEnumeratorCallback
+	data interface{}
+}
+
+type indexedPropertyInfo struct {
+	getter IndexedPropertyGetterCallback
+	setter IndexedPropertySetterCallback
+	deleter IndexedPropertyDeleterCallback
+	query	IndexedPropertyQueryCallback
+	enumerator IndexedPropertyEnumeratorCallback
+	data interface{}
+}
+
 
 type accessorInfo struct {
 	key     string
@@ -53,7 +74,7 @@ type NamedPropertyQueryCallback func(string, PropertyCallbackInfo)
 type NamedPropertyEnumeratorCallback func(PropertyCallbackInfo)
 
 type IndexedPropertyGetterCallback func(uint32, PropertyCallbackInfo)
-type IndexeddPropertySetterCallback func(uint32, *Value, PropertyCallbackInfo)
+type IndexedPropertySetterCallback func(uint32, *Value, PropertyCallbackInfo)
 type IndexedPropertyDeleterCallback func(uint32, PropertyCallbackInfo)
 type IndexedPropertyQueryCallback func(uint32, PropertyCallbackInfo)
 type IndexedPropertyEnumeratorCallback func(PropertyCallbackInfo)
@@ -162,9 +183,63 @@ func (ot *ObjectTemplate) SetAccessor(key string, getter GetterCallback, setter 
 	)
 }
 
-func (ot *ObjectTemplate) SetNamedPropertyHandler(getter GetterCallback, setter SetterCallback, data interface{}) {
+func (ot *ObjectTemplate) SetNamedPropertyHandler(
+	getter NamedPropertyGetterCallback, 
+	setter NamedPropertySetterCallback, 
+	query  NamedPropertyQueryCallback,
+	deleter NamedPropertyDeleterCallback,
+	enumerator NamedPropertyEnumeratorCallback,
+	data interface{}) {
+	info := &namedPropertyInfo{
+		getter:  getter,
+		setter:  setter,
+		query:	query,
+		deleter: deleter,
+		enumerator:enumerator,
+		data:    data,
+	}
+
+	ot.namedInfo = info
+
+	C.V8_ObjectTemplate_SetNamedPropertyHandler(
+		ot.self,
+		unsafe.Pointer(&(info.getter)),
+		unsafe.Pointer(&(info.setter)),
+		unsafe.Pointer(&(info.query)),
+		unsafe.Pointer(&(info.deleter)),
+		unsafe.Pointer(&(info.enumerator)),
+		unsafe.Pointer(&(info.data)),
+	)
 }
 
+func (ot *ObjectTemplate) SetIndexedPropertyHandler(
+	getter IndexedPropertyGetterCallback, 
+	setter IndexedPropertySetterCallback, 
+	query  IndexedPropertyQueryCallback,
+	deleter IndexedPropertyDeleterCallback,
+	enumerator IndexedPropertyEnumeratorCallback,
+	data interface{}) {
+	info := &indexedPropertyInfo{
+		getter:  getter,
+		setter:  setter,
+		query:	query,
+		deleter: deleter,
+		enumerator:enumerator,
+		data:    data,
+	}
+
+	ot.indexedInfo = info
+
+	C.V8_ObjectTemplate_SetIndexedPropertyHandler(
+		ot.self,
+		unsafe.Pointer(&(info.getter)),
+		unsafe.Pointer(&(info.setter)),
+		unsafe.Pointer(&(info.query)),
+		unsafe.Pointer(&(info.deleter)),
+		unsafe.Pointer(&(info.enumerator)),
+		unsafe.Pointer(&(info.data)),
+	)
+}
 type PropertyCallbackInfo struct {
 	self	unsafe.Pointer
 	typ	C.PropertyDataEnum
