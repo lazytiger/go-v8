@@ -469,18 +469,20 @@ func Test_Function(t *testing.T) {
 }
 
 func Test_ObjectTemplate(t *testing.T) {
-	var propertyValue int32
-
 	template := Default.NewObjectTemplate()
+	var propertyValue int32 
 
 	template.SetAccessor(
 		"abc",
 		func(name string, info GetterCallbackInfo) {
-			info.ReturnValue().SetInt32(propertyValue)
+			data := info.Data().(*int32)
+			info.ReturnValue().SetInt32(*data)
 		},
 		func(name string, value *Value, info SetterCallbackInfo) {
-			propertyValue = value.ToInt32()
+			data := info.Data().(*int32)
+			*data = value.ToInt32()
 		},
+		&propertyValue,
 		PA_None,
 	)
 
@@ -1060,11 +1062,14 @@ func Benchmark_Getter(b *testing.B) {
 	template.SetAccessor(
 		"abc",
 		func(name string, info GetterCallbackInfo) {
-			info.ReturnValue().SetInt32(propertyValue)
+			data := info.Data().(*int32)
+			info.ReturnValue().SetInt32(*data)
 		},
 		func(name string, value *Value, info SetterCallbackInfo) {
-			propertyValue = value.ToInt32()
+			data := info.Data().(*int32)
+			*data = value.ToInt32()
 		},
+		&propertyValue,
 		PA_None,
 	)
 
@@ -1091,11 +1096,14 @@ func Benchmark_Setter(b *testing.B) {
 	template.SetAccessor(
 		"abc",
 		func(name string, info GetterCallbackInfo) {
-			info.ReturnValue().SetInt32(propertyValue)
+			data := info.Data().(*int32)
+			info.ReturnValue().SetInt32(*data)
 		},
 		func(name string, value *Value, info SetterCallbackInfo) {
-			propertyValue = value.ToInt32()
+			data := info.Data().(*int32)
+			*data = value.ToInt32()
 		},
+		&propertyValue,
 		PA_None,
 	)
 
@@ -1118,8 +1126,8 @@ func Benchmark_TryCatch(b *testing.B) {
 	b.StartTimer()
 
 	for i := 0; i < b.N; i++ {
-		context.TryCatch(true, func() {
-			Default.Compile([]byte("a[=1"), nil, nil)
+		context.TryCatch(false, func() {
+			Default.Compile([]byte("a[=1;"), nil, nil)
 		})
 	}
 }

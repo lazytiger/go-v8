@@ -34,16 +34,50 @@ type ObjectTemplate struct {
 	id         int
 	engine     *Engine
 	accessors  map[string]*accessorInfo
+	namedInfo *namedPropertyInfo
+	indexedInfo *indexedPropertyInfo
 	properties map[string]*propertyInfo
 	self       unsafe.Pointer
 }
+
+type namedPropertyInfo struct {
+	getter NamedPropertyGetterCallback
+	setter NamedPropertySetterCallback
+	deleter NamedPropertyDeleterCallback
+	query	NamedPropertyQueryCallback
+	enumerator NamedPropertyEnumeratorCallback
+	data interface{}
+}
+
+type indexedPropertyInfo struct {
+	getter IndexedPropertyGetterCallback
+	setter IndexedPropertySetterCallback
+	deleter IndexedPropertyDeleterCallback
+	query	IndexedPropertyQueryCallback
+	enumerator IndexedPropertyEnumeratorCallback
+	data interface{}
+}
+
 
 type accessorInfo struct {
 	key     string
 	getter  GetterCallback
 	setter  SetterCallback
+	data    interface{}
 	attribs PropertyAttribute
 }
+
+type NamedPropertyGetterCallback func(string, PropertyCallbackInfo)
+type NamedPropertySetterCallback func(string, *Value, PropertyCallbackInfo)
+type NamedPropertyDeleterCallback func(string, PropertyCallbackInfo)
+type NamedPropertyQueryCallback func(string, PropertyCallbackInfo)
+type NamedPropertyEnumeratorCallback func(PropertyCallbackInfo)
+
+type IndexedPropertyGetterCallback func(uint32, PropertyCallbackInfo)
+type IndexedPropertySetterCallback func(uint32, *Value, PropertyCallbackInfo)
+type IndexedPropertyDeleterCallback func(uint32, PropertyCallbackInfo)
+type IndexedPropertyQueryCallback func(uint32, PropertyCallbackInfo)
+type IndexedPropertyEnumeratorCallback func(PropertyCallbackInfo)
 
 type propertyInfo struct {
 	key     string
@@ -126,11 +160,12 @@ func (ot *ObjectTemplate) SetProperty(key string, value *Value, attribs Property
 	)
 }
 
-func (ot *ObjectTemplate) SetAccessor(key string, getter GetterCallback, setter SetterCallback, attribs PropertyAttribute) {
+func (ot *ObjectTemplate) SetAccessor(key string, getter GetterCallback, setter SetterCallback, data interface{}, attribs PropertyAttribute) {
 	info := &accessorInfo{
 		key:     key,
 		getter:  getter,
 		setter:  setter,
+		data:    data,
 		attribs: attribs,
 	}
 
@@ -143,28 +178,117 @@ func (ot *ObjectTemplate) SetAccessor(key string, getter GetterCallback, setter 
 		(*C.char)(keyPtr), C.int(len(info.key)),
 		unsafe.Pointer(&(info.getter)),
 		unsafe.Pointer(&(info.setter)),
+		unsafe.Pointer(&(info.data)),
 		C.int(info.attribs),
 	)
+}
+
+func (ot *ObjectTemplate) SetNamedPropertyHandler(
+	getter NamedPropertyGetterCallback, 
+	setter NamedPropertySetterCallback, 
+	query  NamedPropertyQueryCallback,
+	deleter NamedPropertyDeleterCallback,
+	enumerator NamedPropertyEnumeratorCallback,
+	data interface{}) {
+	info := &namedPropertyInfo{
+		getter:  getter,
+		setter:  setter,
+		query:	query,
+		deleter: deleter,
+		enumerator:enumerator,
+		data:    data,
+	}
+
+	ot.namedInfo = info
+
+	C.V8_ObjectTemplate_SetNamedPropertyHandler(
+		ot.self,
+		unsafe.Pointer(&(info.getter)),
+		unsafe.Pointer(&(info.setter)),
+		unsafe.Pointer(&(info.query)),
+		unsafe.Pointer(&(info.deleter)),
+		unsafe.Pointer(&(info.enumerator)),
+		unsafe.Pointer(&(info.data)),
+	)
+}
+
+func (ot *ObjectTemplate) SetIndexedPropertyHandler(
+	getter IndexedPropertyGetterCallback, 
+	setter IndexedPropertySetterCallback, 
+	query  IndexedPropertyQueryCallback,
+	deleter IndexedPropertyDeleterCallback,
+	enumerator IndexedPropertyEnumeratorCallback,
+	data interface{}) {
+	info := &indexedPropertyInfo{
+		getter:  getter,
+		setter:  setter,
+		query:	query,
+		deleter: deleter,
+		enumerator:enumerator,
+		data:    data,
+	}
+
+	ot.indexedInfo = info
+
+	C.V8_ObjectTemplate_SetIndexedPropertyHandler(
+		ot.self,
+		unsafe.Pointer(&(info.getter)),
+		unsafe.Pointer(&(info.setter)),
+		unsafe.Pointer(&(info.query)),
+		unsafe.Pointer(&(info.deleter)),
+		unsafe.Pointer(&(info.enumerator)),
+		unsafe.Pointer(&(info.data)),
+	)
+}
+type PropertyCallbackInfo struct {
+	self	unsafe.Pointer
+	typ	C.PropertyDataEnum
+	data	interface{}
+	returnValue ReturnValue
+}
+
+func (p PropertyCallbackInfo) This() *Object {
+	return newValue(C.V8_PropertyCallbackInfo_This(p.self, p.typ)).ToObject()
+}
+
+func (p PropertyCallbackInfo) Holder() *Object {
+	return newValue(C.V8_PropertyCallbackInfo_Holder(p.self, p.typ)).ToObject()
+}
+
+func(p PropertyCallbackInfo) Data() interface{} {
+	return p.data
+}
+
+func (p PropertyCallbackInfo) ReturnValue() ReturnValue {
+	if p.returnValue.self == nil {
+		p.returnValue.self = C.V8_PropertyCallbackInfo_ReturnValue(p.self, p.typ)
+	}
+	return p.returnValue
 }
 
 // Property getter callback info
 //
 type GetterCallbackInfo struct {
 	self        unsafe.Pointer
+	data        interface{}
 	returnValue ReturnValue
 }
 
 func (g GetterCallbackInfo) This() *Object {
-	return newValue(C.V8_GetterCallbackInfo_This(g.self)).ToObject()
+	return newValue(C.V8_AccessorCallbackInfo_This(g.self, C.OTA_Getter)).ToObject()
 }
 
 func (g GetterCallbackInfo) Holder() *Object {
-	return newValue(C.V8_GetterCallbackInfo_Holder(g.self)).ToObject()
+	return newValue(C.V8_AccessorCallbackInfo_Holder(g.self, C.OTA_Getter)).ToObject()
+}
+
+func (g GetterCallbackInfo) Data() interface{} {
+	return g.data
 }
 
 func (g *GetterCallbackInfo) ReturnValue() ReturnValue {
 	if g.returnValue.self == nil {
-		g.returnValue.self = C.V8_GetterCallbackInfo_ReturnValue(g.self)
+		g.returnValue.self = C.V8_AccessorCallbackInfo_ReturnValue(g.self, C.OTA_Getter)
 	}
 	return g.returnValue
 }
@@ -173,38 +297,53 @@ func (g *GetterCallbackInfo) ReturnValue() ReturnValue {
 //
 type SetterCallbackInfo struct {
 	self unsafe.Pointer
+	data interface{}
 }
 
 func (s SetterCallbackInfo) This() *Object {
-	return newValue(C.V8_SetterCallbackInfo_This(s.self)).ToObject()
+	return newValue(C.V8_AccessorCallbackInfo_This(s.self, C.OTA_Setter)).ToObject()
 }
 
 func (s SetterCallbackInfo) Holder() *Object {
-	return newValue(C.V8_SetterCallbackInfo_Holder(s.self)).ToObject()
+	return newValue(C.V8_AccessorCallbackInfo_Holder(s.self, C.OTA_Setter)).ToObject()
+}
+
+func (s SetterCallbackInfo) Data() interface{} {
+	return s.data
 }
 
 type GetterCallback func(name string, info GetterCallbackInfo)
 
 type SetterCallback func(name string, value *Value, info SetterCallbackInfo)
 
-//export go_getter_callback
-func go_getter_callback(key *C.char, length C.int, info, callback unsafe.Pointer) {
+//export go_accessor_callback
+func go_accessor_callback(typ C.AccessorDataEnum, info *C.V8_AccessorCallbackInfo) {
 	name := reflect.StringHeader{
-		Data: uintptr(unsafe.Pointer(key)),
-		Len:  int(length),
+		Data: uintptr(unsafe.Pointer(info.key)),
+		Len:  int(info.key_length),
 	}
 	gname := *((*string)(unsafe.Pointer(&name)))
-	(*(*GetterCallback)(callback))(gname, GetterCallbackInfo{info, ReturnValue{}})
+	switch typ {
+	case C.OTA_Getter:
+		(*(*GetterCallback)(info.callback))(
+			gname, 
+			GetterCallbackInfo{unsafe.Pointer(info), *(*interface{})(info.data), ReturnValue{}})
+	case C.OTA_Setter:
+		(*(*SetterCallback)(info.callback))(
+			gname, 
+			newValue(info.setValue), 
+			SetterCallbackInfo{unsafe.Pointer(info), *(*interface{})(info.data)})
+	default:
+		panic("impossible type")
+	}
 }
 
-//export go_setter_callback
-func go_setter_callback(key *C.char, length C.int, value, info, callback unsafe.Pointer) {
-	name := reflect.StringHeader{
-		Data: uintptr(unsafe.Pointer(key)),
-		Len:  int(length),
-	}
-	gname := *((*string)(unsafe.Pointer(&name)))
-	(*(*SetterCallback)(callback))(gname, newValue(value), SetterCallbackInfo{info})
+//export go_named_property_callback
+func go_named_property_callback(typ C.PropertyDataEnum, info *C.V8_PropertyCallbackInfo) {
+}
+
+//export go_indexed_property_callback
+func go_indexed_property_callback(typ C.PropertyDataEnum, info *C.V8_PropertyCallbackInfo) {
 }
 
 func (o *Object) setAccessor(info *accessorInfo) bool {
@@ -214,6 +353,7 @@ func (o *Object) setAccessor(info *accessorInfo) bool {
 		(*C.char)(keyPtr), C.int(len(info.key)),
 		unsafe.Pointer(&(info.getter)),
 		unsafe.Pointer(&(info.setter)),
+		unsafe.Pointer(&(info.data)),
 		C.int(info.attribs),
 	) == 1
 }

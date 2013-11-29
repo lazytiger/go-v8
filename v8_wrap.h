@@ -8,6 +8,49 @@
 extern "C" {
 #endif
 
+typedef enum {
+        OTP_Context = 0,
+        OTP_Getter,
+        OTP_Setter,
+        OTP_Query,
+        OTP_Deleter,
+        OTP_Enumerator,
+        OTP_Data,
+        OTP_Num
+} PropertyDataEnum;
+
+typedef enum {
+        OTA_Context = 0,
+        OTA_Getter,
+        OTA_Setter,
+        OTA_KeyString,
+        OTA_KeyLength,
+        OTA_Data,
+        OTA_Num
+} AccessorDataEnum;
+
+typedef struct {
+        void* 		engine;
+        void* 		info;
+        void* 		setValue;
+        const char*	key;
+        int             key_length;
+        void*           data;
+        void*           callback;
+        void* 		returnValue;
+} V8_AccessorCallbackInfo;
+
+typedef struct {
+        void*           engine;
+        void*      	info;
+        void*          	callback;
+        void*          	setValue;
+        void*           data;
+        const char*	key;
+	uint32_t	index;
+        void*           returnValue;
+} V8_PropertyCallbackInfo;
+
 /*
 V8
 */
@@ -174,17 +217,19 @@ extern void* V8_Object_GetPrototype(void *value);
 
 extern int V8_Object_SetPrototype(void *value, void *proto);
 
-extern int V8_Object_SetAccessor(void *value, const char* key, int key_length, void* getter, void* setter, int attribs);
+extern int V8_Object_SetAccessor(void *value, const char* key, int key_length, void* getter, void* setter, void* data, int attribs);
 
-extern void* V8_GetterCallbackInfo_This(void *info);
+extern void* V8_AccessorCallbackInfo_This(void *info, AccessorDataEnum type);
 
-extern void* V8_GetterCallbackInfo_Holder(void *info);
+extern void* V8_AccessorCallbackInfo_Holder(void *info, AccessorDataEnum type);
 
-extern void* V8_GetterCallbackInfo_ReturnValue(void *info);
+extern void* V8_AccessorCallbackInfo_ReturnValue(void *info, AccessorDataEnum typ);
 
-extern void* V8_SetterCallbackInfo_This(void *info);
+extern void* V8_PropertyCallbackInfo_This(void *info, PropertyDataEnum typ );
 
-extern void* V8_SetterCallbackInfo_Holder(void *info);
+extern void* V8_PropertyCallbackInfo_Holder(void *info, PropertyDataEnum typ );
+
+extern void* V8_PropertyCallbackInfo_ReturnValue(void *info, PropertyDataEnum typ );
 
 /*
 array
@@ -249,8 +294,11 @@ extern void V8_ObjectTemplate_SetProperty(void* tpl, const char* key, int key_le
 
 extern void* V8_ObjectTemplate_NewObject(void* tpl);
 
-extern void V8_ObjectTemplate_SetAccessor(void *tpl, const char* key, int key_length, void* getter, void* setter, int attribs);
+extern void V8_ObjectTemplate_SetAccessor(void *tpl, const char* key, int key_length, void* getter, void* setter, void* data, int attribs);
 
+extern void V8_ObjectTemplate_SetNamedPropertyHandler(void* tpl, void* getter, void* setter, void* query, void* deleter, void* enumerator, void* data);
+
+extern void V8_ObjectTemplate_SetIndexedPropertyHandler(void* tpl, void* getter, void* setter, void* query, void* deleter, void* enumerator, void* data);
 /*
 function template
 */
