@@ -46,6 +46,18 @@ type accessorInfo struct {
 	attribs PropertyAttribute
 }
 
+type NamedPropertyGetterCallback func(string, PropertyCallbackInfo)
+type NamedPropertySetterCallback func(string, *Value, PropertyCallbackInfo)
+type NamedPropertyDeleterCallback func(string, PropertyCallbackInfo)
+type NamedPropertyQueryCallback func(string, PropertyCallbackInfo)
+type NamedPropertyEnumeratorCallback func(PropertyCallbackInfo)
+
+type IndexedPropertyGetterCallback func(uint32, PropertyCallbackInfo)
+type IndexeddPropertySetterCallback func(uint32, *Value, PropertyCallbackInfo)
+type IndexedPropertyDeleterCallback func(uint32, PropertyCallbackInfo)
+type IndexedPropertyQueryCallback func(uint32, PropertyCallbackInfo)
+type IndexedPropertyEnumeratorCallback func(PropertyCallbackInfo)
+
 type propertyInfo struct {
 	key     string
 	value   *Value
@@ -153,6 +165,32 @@ func (ot *ObjectTemplate) SetAccessor(key string, getter GetterCallback, setter 
 func (ot *ObjectTemplate) SetNamedPropertyHandler(getter GetterCallback, setter SetterCallback, data interface{}) {
 }
 
+type PropertyCallbackInfo struct {
+	self	unsafe.Pointer
+	typ	C.PropertyDataEnum
+	data	interface{}
+	returnValue ReturnValue
+}
+
+func (p PropertyCallbackInfo) This() *Object {
+	return newValue(C.V8_PropertyCallbackInfo_This(p.self, p.typ)).ToObject()
+}
+
+func (p PropertyCallbackInfo) Holder() *Object {
+	return newValue(C.V8_PropertyCallbackInfo_Holder(p.self, p.typ)).ToObject()
+}
+
+func(p PropertyCallbackInfo) Data() interface{} {
+	return p.data
+}
+
+func (p PropertyCallbackInfo) ReturnValue() ReturnValue {
+	if p.returnValue.self == nil {
+		p.returnValue.self = C.V8_PropertyCallbackInfo_ReturnValue(p.self, p.typ)
+	}
+	return p.returnValue
+}
+
 // Property getter callback info
 //
 type GetterCallbackInfo struct {
@@ -162,11 +200,11 @@ type GetterCallbackInfo struct {
 }
 
 func (g GetterCallbackInfo) This() *Object {
-	return newValue(C.V8_GetterCallbackInfo_This(g.self)).ToObject()
+	return newValue(C.V8_AccessorCallbackInfo_This(g.self, C.OTA_Getter)).ToObject()
 }
 
 func (g GetterCallbackInfo) Holder() *Object {
-	return newValue(C.V8_GetterCallbackInfo_Holder(g.self)).ToObject()
+	return newValue(C.V8_AccessorCallbackInfo_Holder(g.self, C.OTA_Getter)).ToObject()
 }
 
 func (g GetterCallbackInfo) Data() interface{} {
@@ -175,7 +213,7 @@ func (g GetterCallbackInfo) Data() interface{} {
 
 func (g *GetterCallbackInfo) ReturnValue() ReturnValue {
 	if g.returnValue.self == nil {
-		g.returnValue.self = C.V8_GetterCallbackInfo_ReturnValue(g.self)
+		g.returnValue.self = C.V8_AccessorCallbackInfo_ReturnValue(g.self, C.OTA_Getter)
 	}
 	return g.returnValue
 }
@@ -188,11 +226,11 @@ type SetterCallbackInfo struct {
 }
 
 func (s SetterCallbackInfo) This() *Object {
-	return newValue(C.V8_SetterCallbackInfo_This(s.self)).ToObject()
+	return newValue(C.V8_AccessorCallbackInfo_This(s.self, C.OTA_Setter)).ToObject()
 }
 
 func (s SetterCallbackInfo) Holder() *Object {
-	return newValue(C.V8_SetterCallbackInfo_Holder(s.self)).ToObject()
+	return newValue(C.V8_AccessorCallbackInfo_Holder(s.self, C.OTA_Setter)).ToObject()
 }
 
 func (s SetterCallbackInfo) Data() interface{} {
@@ -203,24 +241,34 @@ type GetterCallback func(name string, info GetterCallbackInfo)
 
 type SetterCallback func(name string, value *Value, info SetterCallbackInfo)
 
-//export go_getter_callback
-func go_getter_callback(key *C.char, length C.int, info, callback unsafe.Pointer, data unsafe.Pointer) {
+//export go_accessor_callback
+func go_accessor_callback(typ C.AccessorDataEnum, info *C.V8_AccessorCallbackInfo) {
 	name := reflect.StringHeader{
-		Data: uintptr(unsafe.Pointer(key)),
-		Len:  int(length),
+		Data: uintptr(unsafe.Pointer(info.key)),
+		Len:  int(info.key_length),
 	}
 	gname := *((*string)(unsafe.Pointer(&name)))
-	(*(*GetterCallback)(callback))(gname, GetterCallbackInfo{info, *(*interface{})(data), ReturnValue{}})
+	switch typ {
+	case C.OTA_Getter:
+		(*(*GetterCallback)(info.callback))(
+			gname, 
+			GetterCallbackInfo{unsafe.Pointer(info), *(*interface{})(info.data), ReturnValue{}})
+	case C.OTA_Setter:
+		(*(*SetterCallback)(info.callback))(
+			gname, 
+			newValue(info.setValue), 
+			SetterCallbackInfo{unsafe.Pointer(info), *(*interface{})(info.data)})
+	default:
+		panic("impossible type")
+	}
 }
 
-//export go_setter_callback
-func go_setter_callback(key *C.char, length C.int, value, info, callback unsafe.Pointer, data unsafe.Pointer) {
-	name := reflect.StringHeader{
-		Data: uintptr(unsafe.Pointer(key)),
-		Len:  int(length),
-	}
-	gname := *((*string)(unsafe.Pointer(&name)))
-	(*(*SetterCallback)(callback))(gname, newValue(value), SetterCallbackInfo{info, *(*interface{})(data)})
+//export go_named_property_callback
+func go_named_property_callback(typ C.PropertyDataEnum, info *C.V8_PropertyCallbackInfo) {
+}
+
+//export go_indexed_property_callback
+func go_indexed_property_callback(typ C.PropertyDataEnum, info *C.V8_PropertyCallbackInfo) {
 }
 
 func (o *Object) setAccessor(info *accessorInfo) bool {

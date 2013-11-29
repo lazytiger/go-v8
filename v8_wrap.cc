@@ -161,6 +161,28 @@ public:
 	ISOLATE_SCOPE(the_template->GetIsolate()); \
 	Local<FunctionTemplate> local_template = Local<FunctionTemplate>::New(isolate, the_template->self) \
 
+#define OBJECT_TEMPLATE_NAMED_PROPERTY(typ, has_key, property) \
+	v8::Isolate* isolate_ptr = info.GetIsolate(); \
+        ISOLATE_SCOPE(isolate_ptr); \
+        Local<Array> callback_data = Local<Array>::Cast(info.Data()); \
+        V8_PropertyCallbackInfo callback_info; \
+        callback_info.engine = Local<External>::Cast(callback_data->Get(OTP_Context))->Value(); \
+        callback_info.info = (void*)&info; \
+        callback_info.returnValue = NULL; \
+        callback_info.data = Local<External>::Cast(callback_data->Get(OTP_Data))->Value(); \
+        callback_info.callback = Local<External>::Cast(callback_data->Get(typ))->Value(); \
+	if (has_key) { \
+		String::Utf8Value key(property); \
+		callback_info.key = *key; \
+	} \
+	go_named_property_callback( \
+		typ, \
+		&callback_info \
+	); \
+	if (callback_info.returnValue != NULL) \
+		delete static_cast<V8_ReturnValue*>(callback_info.returnValue)
+
+
 void* new_V8_Value(V8_Context* the_engine, Handle<Value> value) {
 	if (value.IsEmpty())
 		return NULL;
@@ -738,143 +760,235 @@ int V8_Object_IsCallable(void* value) {
 	return Local<Object>::Cast(local_value)->IsCallable();
 }
 
-typedef struct {
-	V8_Context*                        engine;
-	const PropertyCallbackInfo<Value>* getter_info;
-	const PropertyCallbackInfo<void>*  setter_info;
-	V8_ReturnValue*                    returnValue;
-} V8_AccessorCallbackInfo;
-
-typedef struct {
-	V8_Context*								engine;
-	const PropertyCallbackInfo<Value>*		getter_info;
-	const PropertyCallbackInfo<Value>*		setter_info;
-	const PropertyCallbackInfo<Integer>*	query_info;
-	const PropertyCallbackInfo<Boolean>*	deleter_info;
-	const PropertyCallbackInfo<Array>*		enumerator_info;
-	V8_ReturnValue*							returnValue;
-}V8_PropertyCallbackInfo;
-
-//extern void go_getter_callback(char* key, int key_length, void* info, void* callback);
-//extern void go_setter_callback(char* key, int key_length, void* value, void* info, void* callback);
-
-void V8_GetterCallback(Local<String> property, const PropertyCallbackInfo<Value>& info) {
-	v8::Isolate* isolate = v8::Isolate::GetCurrent();
-	HandleScope handle_scope(isolate);
+void V8_AccessorGetterCallback(Local<String> property, const PropertyCallbackInfo<Value>& info) {
+	v8::Isolate* isolate_ptr = info.GetIsolate();
+	ISOLATE_SCOPE(isolate_ptr);
 
 	Local<Array> callback_data = Local<Array>::Cast(info.Data());
 
 	V8_AccessorCallbackInfo callback_info;
-	callback_info.engine = (V8_Context*)Local<External>::Cast(callback_data->Get(0))->Value();
-	callback_info.getter_info = &info;
-	callback_info.setter_info = NULL;
+	callback_info.engine = Local<External>::Cast(callback_data->Get(OTA_Context))->Value();
+	callback_info.info = (void*)&info;
 	callback_info.returnValue = NULL;
+	callback_info.data = Local<External>::Cast(callback_data->Get(OTA_Data))->Value();
+	callback_info.callback = Local<External>::Cast(callback_data->Get(OTA_Getter))->Value();
+	callback_info.key = (const char*)Local<External>::Cast(callback_data->Get(OTA_KeyString))->Value();
+	callback_info.key_length = Local<Integer>::Cast(callback_data->Get(OTA_KeyLength))->Value();
 
-	void* data = Local<External>::Cast(callback_data->Get(5))->Value();
-
-	void* callback = Local<External>::Cast(callback_data->Get(1))->Value();
-
-	void* key = Local<External>::Cast(callback_data->Get(3))->Value();
-
-	int key_length = Local<Integer>::Cast(callback_data->Get(4))->Value();
-
-	go_getter_callback(
-		(char*)key, key_length,
-		&callback_info,
-		callback,
-		data
+	go_accessor_callback(
+		OTA_Getter,
+		&callback_info
 	);
 
 	if (callback_info.returnValue != NULL)
-		delete callback_info.returnValue;
+		delete static_cast<V8_ReturnValue*>(callback_info.returnValue);
 }
 
-void V8_SetterCallback(Local<String> property, Local<Value> value, const PropertyCallbackInfo<void>& info) {
-	v8::Isolate* isolate = v8::Isolate::GetCurrent();
-	HandleScope handle_scope(isolate);
+void V8_AccessorSetterCallback(Local<String> property, Local<Value> value, const PropertyCallbackInfo<void>& info) {
+	v8::Isolate* isolate_ptr = info.GetIsolate();
+	ISOLATE_SCOPE(isolate_ptr);
 
 	Local<Array> callback_data = Local<Array>::Cast(info.Data());
 
 	V8_AccessorCallbackInfo callback_info;
-	callback_info.engine = (V8_Context*)Local<External>::Cast(callback_data->Get(0))->Value();
-	callback_info.getter_info = NULL;
-	callback_info.setter_info = &info;
+	callback_info.engine = Local<External>::Cast(callback_data->Get(OTA_Context))->Value();
+	callback_info.info = (void*)&info;
 	callback_info.returnValue = NULL;
+	callback_info.setValue = new_V8_Value(static_cast<V8_Context*>(callback_info.engine), value);
+	callback_info.data = Local<External>::Cast(callback_data->Get(OTA_Data))->Value();
+	callback_info.callback = Local<External>::Cast(callback_data->Get(OTA_Setter))->Value();
+	callback_info.key = (const char*)Local<External>::Cast(callback_data->Get(OTA_KeyString))->Value();
+	callback_info.key_length = Local<Integer>::Cast(callback_data->Get(OTA_KeyLength))->Value();
 
-	void* data = Local<External>::Cast(callback_data->Get(5))->Value();
-
-	void* callback = Local<External>::Cast(callback_data->Get(2))->Value();
-
-	void* key = Local<External>::Cast(callback_data->Get(3))->Value();
-
-	int key_length = Local<Integer>::Cast(callback_data->Get(4))->Value();
-
-	go_setter_callback(
-		(char*)key, key_length,
-		new_V8_Value(callback_info.engine, value),
-		&callback_info,
-		callback,
-		data
+	go_accessor_callback(
+		OTA_Setter,
+		&callback_info
 	);
 
 	if (callback_info.returnValue != NULL)
-		delete callback_info.returnValue;
+		delete static_cast<V8_ReturnValue*>(callback_info.returnValue);
 }
 
+void V8_NamedPropertyDeleterCallback(Local< String > property, const PropertyCallbackInfo< Boolean > &info) {
+	OBJECT_TEMPLATE_NAMED_PROPERTY(OTP_Deleter, true, property);
+}
+
+void V8_NamedPropertyEnumeratorCallback(const PropertyCallbackInfo< Array > &info) {
+	Local<String> dummy;
+	OBJECT_TEMPLATE_NAMED_PROPERTY(OTP_Deleter, false, dummy);
+}
+
+void V8_NamedPropertyGetterCallback(Local< String > property, const PropertyCallbackInfo< Value > &info) {
+	OBJECT_TEMPLATE_NAMED_PROPERTY(OTP_Getter, true, property);
+}
+
+void V8_NamedPropertyQueryCallback(Local< String > property, const PropertyCallbackInfo< Integer > &info) {
+	OBJECT_TEMPLATE_NAMED_PROPERTY(OTP_Query, true, property);
+}
+
+void V8_NamedPropertySetterCallback(Local< String > property, Local< Value > value, const PropertyCallbackInfo< Value > &info) {
+	OBJECT_TEMPLATE_NAMED_PROPERTY(OTP_Setter, true, property);
+}
+
+void V8_IndexedPropertyDeleterCallback(uint32_t index, const PropertyCallbackInfo< Boolean > &info) {
+}
+
+void V8_IndexedPropertyEnumeratorCallback(const PropertyCallbackInfo< Array > &info) {
+}
+
+void V8_IndexedPropertyGetterCallback(uint32_t index, const PropertyCallbackInfo< Value > &info) {
+}
+
+void V8_IndexedPropertyQueryCallback(uint32_t index, const PropertyCallbackInfo< Integer > &info) {
+}
+
+void V8_IndexedPropertySetterCallback(uint32_t index, Local< Value > value, const PropertyCallbackInfo< Value > &info) {
+}
 int V8_Object_SetAccessor(void *value, const char* key, int key_length, void* getter, void* setter, void* data, int attribs) {
 	VALUE_SCOPE(value);
 
-	Handle<Array> callback_info = Array::New(3);
-	callback_info->Set(0, External::New((void*)the_value->engine));
-	callback_info->Set(1, External::New(getter));
-	callback_info->Set(2, External::New(setter));
-	callback_info->Set(3, External::New((void*)key));
-	callback_info->Set(4, Integer::New(key_length));
-	callback_info->Set(5, External::New(data));
+	Handle<Array> callback_info = Array::New(OTA_Num);
+	callback_info->Set(OTA_Context, External::New((void*)the_value->engine));
+	callback_info->Set(OTA_Getter, External::New(getter));
+	callback_info->Set(OTA_Setter, External::New(setter));
+	callback_info->Set(OTA_KeyString, External::New((void*)key));
+	callback_info->Set(OTA_KeyLength, Integer::New(key_length));
+	callback_info->Set(OTA_Data, External::New(data));
 
 	if (callback_info.IsEmpty())
 		return 0;
 
 	return Local<Object>::Cast(local_value)->SetAccessor(
 		String::NewFromOneByte(isolate, (uint8_t*)key, String::kNormalString, key_length),
-		V8_GetterCallback, setter == NULL ? NULL : V8_SetterCallback,
+		V8_AccessorGetterCallback, setter == NULL ? NULL : V8_AccessorSetterCallback,
  		callback_info
 	);
 }
 
-void* V8_GetterCallbackInfo_This(void *info) {
-	V8_AccessorCallbackInfo* the_info = (V8_AccessorCallbackInfo*)info;
-	ENGINE_SCOPE(the_info->engine);
-	return new_V8_Value(the_info->engine, the_info->getter_info->This());
-}
-
-void* V8_GetterCallbackInfo_Holder(void *info) {
-	V8_AccessorCallbackInfo* the_info = (V8_AccessorCallbackInfo*)info;
-	ENGINE_SCOPE(the_info->engine);
-	return new_V8_Value(the_info->engine, the_info->getter_info->Holder());
-}
-
-void* V8_GetterCallbackInfo_ReturnValue(void *info) {
-	V8_AccessorCallbackInfo* the_info = (V8_AccessorCallbackInfo*)info;
-	if (the_info->returnValue == NULL) {
-		the_info->returnValue = new V8_ReturnValue(
-			the_info->engine,
-			the_info->getter_info->GetReturnValue()
-		);;
+void* V8_PropertyCallbackInfo_This(void *info, PropertyDataEnum typ ) {
+	V8_PropertyCallbackInfo* the_info = (V8_PropertyCallbackInfo*)info;
+	V8_Context* engine = static_cast<V8_Context*>(the_info->engine);
+	ENGINE_SCOPE(engine);
+	switch(typ) {
+	case OTP_Getter:
+		return new_V8_Value(engine, static_cast<PropertyCallbackInfo<Value>*>(the_info->info)->This());
+	case OTP_Setter:
+		return new_V8_Value(engine, static_cast<PropertyCallbackInfo<Value>*>(the_info->info)->This());
+	case OTP_Deleter:
+		return new_V8_Value(engine, static_cast<PropertyCallbackInfo<Boolean>*>(the_info->info)->This());
+	case OTP_Query:
+		return new_V8_Value(engine, static_cast<PropertyCallbackInfo<Integer>*>(the_info->info)->This());
+	case OTP_Enumerator:
+		return new_V8_Value(engine, static_cast<PropertyCallbackInfo<Array>*>(the_info->info)->This());
+	default:
+		//impossible, should panic
+		return NULL;
 	}
-	return (void*)the_info->returnValue;
 }
 
-void* V8_SetterCallbackInfo_This(void *info) {
-	V8_AccessorCallbackInfo* the_info = (V8_AccessorCallbackInfo*)info;
-	ENGINE_SCOPE(the_info->engine);
-	return new_V8_Value(the_info->engine, the_info->setter_info->This());
+void* V8_PropertyCallbackInfo_Holder(void *info, PropertyDataEnum typ) {
+	V8_PropertyCallbackInfo* the_info = (V8_PropertyCallbackInfo*)info;
+	V8_Context* engine = static_cast<V8_Context*>(the_info->engine);
+	ENGINE_SCOPE(engine);
+	switch(typ) {
+	case OTP_Getter:
+		return new_V8_Value(engine, static_cast<PropertyCallbackInfo<Value>*>(the_info->info)->Holder());
+	case OTP_Setter:
+		return new_V8_Value(engine, static_cast<PropertyCallbackInfo<Value>*>(the_info->info)->Holder());
+	case OTP_Deleter:
+		return new_V8_Value(engine, static_cast<PropertyCallbackInfo<Boolean>*>(the_info->info)->Holder());
+	case OTP_Query:
+		return new_V8_Value(engine, static_cast<PropertyCallbackInfo<Integer>*>(the_info->info)->Holder());
+	case OTP_Enumerator:
+		return new_V8_Value(engine, static_cast<PropertyCallbackInfo<Array>*>(the_info->info)->Holder());
+	default:
+		//impossible, should panic
+		return NULL;
+	}
 }
 
-void* V8_SetterCallbackInfo_Holder(void *info) {
+void* V8_PropertyCallbackInfo_ReturnValue(void *info,  PropertyDataEnum typ) {
+	V8_PropertyCallbackInfo* the_info = (V8_PropertyCallbackInfo*)info;
+	V8_Context* engine = static_cast<V8_Context*>(the_info->engine);
+	ENGINE_SCOPE(engine);
+	if (the_info->returnValue == NULL) {
+		switch(typ) {
+		case OTP_Getter:
+			the_info->returnValue = new V8_ReturnValue(
+				engine,
+				static_cast<PropertyCallbackInfo<Value>*>(the_info->info)->GetReturnValue()
+				);
+				break;
+		case OTP_Setter:
+			the_info->returnValue = new V8_ReturnValue(
+				engine,
+				static_cast<PropertyCallbackInfo<Value>*>(the_info->info)->GetReturnValue()
+				);
+				break;
+		case OTP_Deleter:
+			the_info->returnValue = new V8_ReturnValue(
+				engine,
+				ReturnValue<Value>(static_cast<PropertyCallbackInfo<Value>*>(the_info->info)->GetReturnValue())
+				);
+				break;
+		case OTP_Query:
+			the_info->returnValue = new V8_ReturnValue(
+				engine,
+				ReturnValue<Value>(static_cast<PropertyCallbackInfo<Value>*>(the_info->info)->GetReturnValue())
+				);
+				break;
+		case OTP_Enumerator:
+			the_info->returnValue = new V8_ReturnValue(
+				engine,
+				ReturnValue<Value>(static_cast<PropertyCallbackInfo<Value>*>(the_info->info)->GetReturnValue())
+				);
+				break;
+		}
+	}
+	return the_info->returnValue;
+}
+
+void* V8_AccessorCallbackInfo_This(void *info, AccessorDataEnum typ) {
 	V8_AccessorCallbackInfo* the_info = (V8_AccessorCallbackInfo*)info;
-	ENGINE_SCOPE(the_info->engine);
-	return new_V8_Value(the_info->engine, the_info->setter_info->Holder());
+	V8_Context* engine = static_cast<V8_Context*>(the_info->engine);
+	ENGINE_SCOPE(engine);
+	switch(typ) {
+	case OTA_Getter:
+		return new_V8_Value(engine, static_cast<PropertyCallbackInfo<Value>*>(the_info->info)->This());
+	case OTA_Setter:
+		return new_V8_Value(engine, static_cast<PropertyCallbackInfo<void>*>(the_info->info)->This());
+	default:
+		return NULL;
+	}
+}
+
+void* V8_AccessorCallbackInfo_Holder(void *info, AccessorDataEnum typ) {
+	V8_AccessorCallbackInfo* the_info = (V8_AccessorCallbackInfo*)info;
+	V8_Context* engine = static_cast<V8_Context*>(the_info->engine);
+	ENGINE_SCOPE(engine);
+	switch(typ) {
+	case OTA_Getter:
+		return new_V8_Value(engine, static_cast<PropertyCallbackInfo<Value>*>(the_info->info)->Holder());
+	case OTA_Setter:
+		return new_V8_Value(engine, static_cast<PropertyCallbackInfo<void>*>(the_info->info)->Holder());
+	default:
+		return NULL;
+	}
+}
+
+void* V8_AccessorCallbackInfo_ReturnValue(void *info, AccessorDataEnum typ) {
+	V8_AccessorCallbackInfo* the_info = (V8_AccessorCallbackInfo*)info;
+	V8_Context* engine = static_cast<V8_Context*>(the_info->engine);
+	if (the_info->returnValue == NULL) {
+		switch(typ) {
+		case OTA_Getter:
+			the_info->returnValue = new V8_ReturnValue(
+				engine,
+				static_cast<PropertyCallbackInfo<Value>*>(the_info->info)->GetReturnValue()
+				);
+		}
+	}
+	return the_info->returnValue;
 }
 
 /*
@@ -987,8 +1101,8 @@ typedef struct {
 extern void go_function_callback(void* info, void* callback);
 
 void V8_FunctionCallback(const v8::FunctionCallbackInfo<Value>& info) {
-	v8::Isolate* isolate = v8::Isolate::GetCurrent();
-	HandleScope handle_scope(isolate);
+	v8::Isolate* isolate_ptr = info.GetIsolate();
+	ISOLATE_SCOPE(isolate_ptr);
 
 	Local<Array> callback_data = Local<Array>::Cast(info.Data());
 
@@ -1098,7 +1212,7 @@ void* V8_ObjectTemplate_NewObject(void* tpl) {
 void V8_ObjectTemplate_SetAccessor(void *tpl, const char* key, int key_length, void* getter, void* setter, void* data, int attribs) {
 	OBJECT_TEMPLATE_SCOPE(tpl);
 
-	Handle<Array> callback_info = Array::New(3);
+	Handle<Array> callback_info = Array::New(5);
 	callback_info->Set(0, External::New((void*)the_template->engine));
 	callback_info->Set(1, External::New(getter));
 	callback_info->Set(2, External::New(setter));
@@ -1111,10 +1225,61 @@ void V8_ObjectTemplate_SetAccessor(void *tpl, const char* key, int key_length, v
 
 	local_template->SetAccessor(
 		String::NewFromOneByte(isolate, (uint8_t*)key, String::kNormalString, key_length),
-		V8_GetterCallback, setter == NULL ? NULL : V8_SetterCallback,
+		V8_AccessorGetterCallback, setter == NULL ? NULL : V8_AccessorSetterCallback,
  		callback_info
 	);
 }
+
+extern void V8_ObjectTemplate_SetNamedPropertyHandler(void* tpl, void* getter, void* setter, void* query, void* deleter, void* enumerator, void* data) {
+	OBJECT_TEMPLATE_SCOPE(tpl);
+
+	Handle<Array> callback_info = Array::New(OTP_Num);
+	callback_info->Set(OTP_Context, External::New((void*)the_template->engine));
+	callback_info->Set(OTP_Getter, External::New(getter));
+	callback_info->Set(OTP_Setter, External::New(setter));
+	callback_info->Set(OTP_Query, External::New(query));
+	callback_info->Set(OTP_Deleter, External::New(deleter));
+	callback_info->Set(OTP_Enumerator, External::New(enumerator));
+	callback_info->Set(OTP_Data, External::New(data));
+
+	if (callback_info.IsEmpty())
+		return;
+
+	local_template->SetNamedPropertyHandler(
+		V8_NamedPropertyGetterCallback, 
+		setter == NULL ? NULL : V8_NamedPropertySetterCallback,
+		query == NULL ? NULL : V8_NamedPropertyQueryCallback,
+		deleter == NULL ? NULL : V8_NamedPropertyDeleterCallback,
+		enumerator == NULL ? NULL : V8_NamedPropertyEnumeratorCallback,
+ 		callback_info
+	);
+}
+
+extern void V8_ObjectTemplate_SetIndexedPropertyHandler(void* tpl, void* getter, void* setter, void* query, void* deleter, void* enumerator, void* data) {
+	OBJECT_TEMPLATE_SCOPE(tpl);
+	
+	Handle<Array> callback_info = Array::New(7);
+	callback_info->Set(0, External::New((void*)the_template->engine));
+	callback_info->Set(1, External::New(getter));
+	callback_info->Set(2, External::New(setter));
+	callback_info->Set(3, External::New(query));
+	callback_info->Set(4, External::New(deleter));
+	callback_info->Set(5, External::New(enumerator));
+	callback_info->Set(6, External::New(data));
+
+	if (callback_info.IsEmpty())
+		return;
+
+	local_template->SetIndexedPropertyHandler(
+		V8_IndexedPropertyGetterCallback, 
+		setter == NULL ? NULL : V8_IndexedPropertySetterCallback,
+		query == NULL ? NULL : V8_IndexedPropertyQueryCallback,
+		deleter == NULL ? NULL : V8_IndexedPropertyDeleterCallback,
+		enumerator == NULL ? NULL : V8_IndexedPropertyEnumeratorCallback,
+ 		callback_info
+	);
+}
+
 
 /*
 function template
