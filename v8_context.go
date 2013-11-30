@@ -83,3 +83,7 @@ func (cs ContextScope) TryCatch(simple bool, callback func()) string {
 	C.free(unsafe.Pointer(creport))
 	return report
 }
+
+func (cs ContextScope) Global() *Object {
+	return newValue(C.V8_Context_Global(cs.context.self)).ToObject()
+}

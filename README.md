@@ -1,61 +1,44 @@
 go-v8
 =====
 
-v8 javascript engine binding for golang.
+v8 JavaScript engine binding for Go.
 
 Features
 =======
 
-* thread safe
-* thorough and careful testing
-* number, string, object, array, regexp, function types
-* access javascript object properties and array elements in Go
-* define javascript object template in Go with property getter and setter callback
-* define javascript function template in Go with callback
-* compile or pre-compile script and run
+* Thread safe
+* Thorough and careful testing
+* Boolean, Number, String, Object, Array, Regexp, Function
+* Compile JavaScript and run
+* Save and load pre-compiled script data
+* Create JavaScript context with global object template
+* Operate JavaScript object properties and array elements in Go
+* Define JavaScript object template in Go with property accessors and interceptors
+* Define JavaScript function template in Go
+* Catch JavaScript exception in Go
+* Throw JavaScript exception by Go
 * JSON parse and generate
-* try catch and throw exception
 
-How to install
-==============
-
-The easy way
-------------
+Install
+=======
 
 Prepare you computer:
 
-1. make sure your 'go' is version 1.2
-2. make sure there has 'curl' or 'wget' installed
-3. make sure there has 'git' installed
+1. make sure you have Go version 1.2
+2. make sure there has 'curl' or 'wget' command
+3. make sure there has 'git' command
 
-There has some shell script in the project root directory for help you download and install v8 engine and go-v8.
-
-Install v8 engine and go-v8 only need one line of shell command.
-
-Use 'curl':
+For 'curl' user. please run this shell command:
 
 ```
 curl -O https://raw.github.com/realint/go-v8/master/get.sh && chmod +x get.sh && ./get.sh go-v8
 ```
 
-Use 'wget':
+For 'wget' user. Please run this shell command:
 
 ```
 wget -O get.sh https://raw.github.com/realint/go-v8/master/get.sh && chmod +x get.sh && ./get.sh go-v8
 ```
-
-The hard way
-------------
-
-You can install go-v8 by manual:
-
-1. download or clone go-v8 from github
-2. make sure go-v8 package can be searched by your GOPATH setting
-3. cd to go-v8 root directory
-4. run install.sh to auto download and compile v8 engine
-5. the install.sh will install and test go-v8 after v8 engine compiled
-
-Read the get.sh and install.sh if you want to know the detail.
 
 Stability and Performance
 =========================
@@ -105,11 +88,8 @@ Benchmark_Setter         1000000              2934 ns/op
 Benchmark_TryCatch         50000             43097 ns/op
 ```
 
-How to use
-==========
-
 Hello World
------------
+===========
 
 Let's write a Hello World program to learn how to use go-v8.
 
@@ -166,6 +146,5 @@ func main() {
 		println(result.ToString())
 	})
 }
-
 ```
 

@@ -27,7 +27,7 @@ using namespace v8;
 #define VALUE_SCOPE(value) \
 	V8_Value* the_value = static_cast<V8_Value*>(value); \
 	ISOLATE_SCOPE(the_value->GetIsolate()); \
-	Local<Value> local_value = Local<Value>::New(isolate, the_value->self) \
+	Local<Value> local_value = the_value->self \
 
 #define OBJECT_TEMPLATE_SCOPE(tpl) \
 	V8_ObjectTemplate* the_template = static_cast<V8_ObjectTemplate*>(tpl); \
@@ -268,6 +268,12 @@ V8_Context* V8_Current_Context(Isolate *isolate) {
 	if (data == NULL)
 		v8_panic((char*)"Please call this API in a context scope");
 	return static_cast<V8_Context*>(data);
+}
+
+void* V8_Context_Global(void* context) {
+	CONTEXT_SCOPE(context);
+	Local<Context> local_context = Local<Context>::New(isolate, the_context->self);
+	return new_V8_Value(the_context, local_context->Global()); 
 }
 
 extern void try_catch_callback(void* callback);

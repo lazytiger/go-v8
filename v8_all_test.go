@@ -690,18 +690,38 @@ func Test_Context(t *testing.T) {
 		test_func(cs)
 	})
 
+	functionTemplate := Default.NewFunctionTemplate(func(info FunctionCallbackInfo) {
+		for i := 0; i < info.Length(); i++ {
+			println(info.Get(i).ToString())
+		}
+	})
+
+	// Test Global Template
 	globalTemplate := Default.NewObjectTemplate()
 
 	globalTemplate.SetAccessor("log", func(name string, info GetterCallbackInfo) {
-		info.ReturnValue().Set(Default.NewFunctionTemplate(func(info FunctionCallbackInfo) {
-			for i := 0; i < info.Length(); i++ {
-				t.Log(info.Get(i).ToString())
-			}
-		}).NewFunction())
+		info.ReturnValue().Set(functionTemplate.NewFunction())
 	}, nil, nil, PA_None)
 
 	Default.NewContext(globalTemplate).Scope(func(cs ContextScope) {
 		cs.Eval([]byte(`log("Hello World!")`))
+	})
+
+	// Test Global Object
+	Default.NewContext(nil).Scope(func(cs ContextScope) {
+		global := cs.Global()
+
+		if !global.SetProperty("println", functionTemplate.NewFunction(), PA_None) {
+		}
+
+		global = cs.Global()
+
+		if !global.HasProperty("println") {
+			t.Fatal(`!global.HasProperty("println")`)
+			return
+		}
+
+		cs.Eval([]byte(`println("Hello World!")`))
 	})
 
 	runtime.GC()
