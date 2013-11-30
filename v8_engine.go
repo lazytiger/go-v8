@@ -46,3 +46,8 @@ func NewEngine() *Engine {
 
 	return result
 }
+
+//export v8_panic
+func v8_panic(message *C.char) {
+	panic(C.GoString(message))
+}

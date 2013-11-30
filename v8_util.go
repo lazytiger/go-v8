@@ -20,16 +20,16 @@ var (
 	jsonNull        = []byte("null")
 )
 
-func (e *Engine) Eval(code []byte) *Value {
-	if script := e.Compile(code, nil, nil); script != nil {
+func (cs ContextScope) Eval(code []byte) *Value {
+	if script := cs.context.engine.Compile(code, nil, nil); script != nil {
 		return script.Run()
 	}
 	return nil
 }
 
-func (e *Engine) ParseJSON(json string) *Value {
+func (cs ContextScope) ParseJSON(json string) *Value {
 	jsonPtr := unsafe.Pointer((*reflect.StringHeader)(unsafe.Pointer(&json)).Data)
-	return newValue(C.V8_ParseJSON(e.self, (*C.char)(jsonPtr), C.int(len(json))))
+	return newValue(C.V8_ParseJSON(cs.context.self, (*C.char)(jsonPtr), C.int(len(json))))
 }
 
 func ToJSON(value *Value) []byte {

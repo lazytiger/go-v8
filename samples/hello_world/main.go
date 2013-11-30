@@ -7,7 +7,7 @@ func main() {
 	script := engine.Compile([]byte("'Hello ' + 'World!'"), nil, nil)
 	context := engine.NewContext(nil)
 
-	context.Scope(func(c *v8.Context) {
+	context.Scope(func(cs v8.ContextScope) {
 		result := script.Run()
 		println(result.ToString())
 	})

@@ -30,25 +30,25 @@ typedef enum {
 } AccessorDataEnum;
 
 typedef struct {
-        void* 		engine;
-        void* 		info;
-        void* 		setValue;
-        const char*	key;
-        int             key_length;
-        void*           data;
-        void*           callback;
-        void* 		returnValue;
+        void*        engine;
+        void*        info;
+        void*        setValue;
+        const char*  key;
+        int          key_length;
+        void*        data;
+        void*        callback;
+        void*        returnValue;
 } V8_AccessorCallbackInfo;
 
 typedef struct {
-        void*           engine;
-        void*      	info;
-        void*          	callback;
-        void*          	setValue;
-        void*           data;
-        const char*	key;
-	uint32_t	index;
-        void*           returnValue;
+        void*     engine;
+        void*     info;
+        void*     callback;
+        void*     setValue;
+        void*     data;
+        char*	  key;
+	uint32_t  index;
+        void*     returnValue;
 } V8_PropertyCallbackInfo;
 
 /*
@@ -65,7 +65,7 @@ extern void* V8_NewEngine();
 
 extern void V8_DisposeEngine(void* engine);
 
-extern void* V8_ParseJSON(void* engine, const char* json, int json_length);
+extern void* V8_ParseJSON(void* context, const char* json, int json_length);
 
 /*
 context
@@ -178,14 +178,14 @@ extern void* V8_True(void* engine);
 
 extern void* V8_False(void* engine);
 
-extern void* V8_NewNumber(void* engine, double val);
+extern void* V8_NewNumber(void* context, double val);
 
-extern void* V8_NewString(void* engine, const char* val, int val_length);
+extern void* V8_NewString(void* context, const char* val, int val_length);
 
 /*
 object
 */
-extern void* V8_NewObject(void* engine);
+extern void* V8_NewObject(void* context);
 
 extern int V8_Object_SetProperty(void* value, const char* key, int key_length, void* prop_value, int attribs);
 
@@ -234,14 +234,14 @@ extern void* V8_PropertyCallbackInfo_ReturnValue(void *info, PropertyDataEnum ty
 /*
 array
 */
-extern void* V8_NewArray(void* engine, int length);
+extern void* V8_NewArray(void* context, int length);
 
 extern int V8_Array_Length(void* value);
 
 /*
 regexp
 */
-extern void* V8_NewRegExp(void* engine, const char* pattern, int length, int flags);
+extern void* V8_NewRegExp(void* context, const char* pattern, int length, int flags);
 
 extern char* V8_RegExp_Pattern(void* value);
 
@@ -296,9 +296,25 @@ extern void* V8_ObjectTemplate_NewObject(void* tpl);
 
 extern void V8_ObjectTemplate_SetAccessor(void *tpl, const char* key, int key_length, void* getter, void* setter, void* data, int attribs);
 
-extern void V8_ObjectTemplate_SetNamedPropertyHandler(void* tpl, void* getter, void* setter, void* query, void* deleter, void* enumerator, void* data);
+extern void V8_ObjectTemplate_SetNamedPropertyHandler(
+        void* tpl, 
+        void* getter, 
+        void* setter, 
+        void* query, 
+        void* deleter, 
+        void* enumerator, 
+        void* data
+);
 
-extern void V8_ObjectTemplate_SetIndexedPropertyHandler(void* tpl, void* getter, void* setter, void* query, void* deleter, void* enumerator, void* data);
+extern void V8_ObjectTemplate_SetIndexedPropertyHandler(
+        void* tpl, 
+        void* getter, 
+        void* setter, 
+        void* query, 
+        void* deleter, 
+        void* enumerator, 
+        void* data
+);
 
 /*
 function template

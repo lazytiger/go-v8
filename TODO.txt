@@ -1,6 +1,6 @@
-1. heap statistics
-2. cpu profiler
-3. heap profiler
-4. stack trace
-5. test get/set prototype
-6. named property and indexed property for object template
+* named property and indexed property for object template
+* improve try catch and re-throw
+* heap statistics
+* cpu profiler
+* heap profiler
+* stack trace

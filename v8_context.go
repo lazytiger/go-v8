@@ -17,6 +17,10 @@ type Context struct {
 	engine *Engine
 }
 
+type ContextScope struct {
+	context *Context
+}
+
 func (e *Engine) NewContext(globalTemplate *ObjectTemplate) *Context {
 	var globalTemplatePtr unsafe.Pointer
 	if globalTemplate != nil {
@@ -45,10 +49,10 @@ func (e *Engine) NewContext(globalTemplate *ObjectTemplate) *Context {
 
 //export context_scope_callback
 func context_scope_callback(c unsafe.Pointer, callback unsafe.Pointer) {
-	(*(*func(*Context))(callback))((*Context)(c))
+	(*(*func(ContextScope))(callback))(ContextScope{(*Context)(c)})
 }
 
-func (c *Context) Scope(callback func(*Context)) {
+func (c *Context) Scope(callback func(ContextScope)) {
 	C.V8_Context_Scope(c.self, unsafe.Pointer(c), unsafe.Pointer(&callback))
 }
 
@@ -57,8 +61,8 @@ func try_catch_callback(callback unsafe.Pointer) {
 	(*(*func())(callback))()
 }
 
-func (c *Context) ThrowException(err string) {
-	c.engine.Compile([]byte(`throw "`+err+`"`), nil, nil).Run()
+func (cs ContextScope) ThrowException(err string) {
+	cs.context.engine.Compile([]byte(`throw "`+err+`"`), nil, nil).Run()
 	//
 	// TODO: use Isolate::ThrowException() will make FunctionTemplate::GetFunction() returns NULL, why?
 	//
@@ -66,12 +70,12 @@ func (c *Context) ThrowException(err string) {
 	//C.V8_Context_ThrowException(c.self, (*C.char)(errPtr), C.int(len(err)))
 }
 
-func (c *Context) TryCatch(simple bool, callback func()) string {
+func (cs ContextScope) TryCatch(simple bool, callback func()) string {
 	isSimple := 0
 	if simple {
 		isSimple = 1
 	}
-	creport := C.V8_Context_TryCatch(c.self, unsafe.Pointer(&callback), C.int(isSimple))
+	creport := C.V8_Context_TryCatch(cs.context.self, unsafe.Pointer(&callback), C.int(isSimple))
 	if creport == nil {
 		return ""
 	}

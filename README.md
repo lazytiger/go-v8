@@ -84,65 +84,25 @@ For example:
 
 The above command will run all of thread safe test and all of benchmark about Array type.
 
-Below is the test and benchmark result on my iMac:
+Below is the benchmark result on my iMac:
 
 ```
-=== RUN Test_GetVersion
---- PASS: Test_GetVersion (0.00 seconds)
-        v8_all_test.go:58: 3.23.0
-=== RUN Test_HelloWorld
---- PASS: Test_HelloWorld (0.00 seconds)
-=== RUN Test_TryCatch
---- PASS: Test_TryCatch (0.01 seconds)
-=== RUN Test_PreCompile
---- PASS: Test_PreCompile (0.00 seconds)
-=== RUN Test_Values
---- PASS: Test_Values (0.00 seconds)
-=== RUN Test_Object
---- PASS: Test_Object (0.00 seconds)
-=== RUN Test_Array
---- PASS: Test_Array (0.00 seconds)
-=== RUN Test_Function
---- PASS: Test_Function (0.00 seconds)
-=== RUN Test_ObjectTemplate
---- PASS: Test_ObjectTemplate (0.00 seconds)
-=== RUN Test_Context
---- PASS: Test_Context (0.00 seconds)
-        v8_all_test.go:552: Hello World!
-=== RUN Test_UnderscoreJS
---- PASS: Test_UnderscoreJS (0.00 seconds)
-=== RUN Test_JSON
---- PASS: Test_JSON (0.00 seconds)
-=== RUN Test_ThreadSafe1
---- PASS: Test_ThreadSafe1 (0.06 seconds)
-=== RUN Test_ThreadSafe2
---- PASS: Test_ThreadSafe2 (0.06 seconds)
-=== RUN Test_ThreadSafe3
---- PASS: Test_ThreadSafe3 (0.09 seconds)
-=== RUN Test_ThreadSafe4
---- PASS: Test_ThreadSafe4 (0.07 seconds)
-=== RUN Test_ThreadSafe5
---- PASS: Test_ThreadSafe5 (0.02 seconds)
-=== RUN Test_ThreadSafe6
---- PASS: Test_ThreadSafe6 (0.06 seconds)
-PASS
-Benchmark_NewContext       10000            688826 ns/op
-Benchmark_NewInteger     1000000              2249 ns/op
-Benchmark_NewString      1000000              3869 ns/op
-Benchmark_NewObject      1000000              4258 ns/op
-Benchmark_NewArray0      1000000              1884 ns/op
-Benchmark_NewArray5      1000000              1558 ns/op
-Benchmark_NewArray20     1000000              4677 ns/op
-Benchmark_NewArray100    1000000              2290 ns/op
-Benchmark_Compile         200000             13752 ns/op
-Benchmark_PreCompile      200000             13879 ns/op
-Benchmark_RunScript      5000000              1271 ns/op
-Benchmark_JsFunction     5000000               719 ns/op
-Benchmark_GoFunction      500000              4434 ns/op
-Benchmark_Getter         1000000              2718 ns/op
-Benchmark_Setter          500000              4523 ns/op
-Benchmark_TryCatch        100000             26957 ns/op
-ok      github.com/realint/v8   97.863s
+Benchmark_NewContext        5000            249474 ns/op
+Benchmark_NewInteger     2000000               984 ns/op
+Benchmark_NewString      2000000               983 ns/op
+Benchmark_NewObject      1000000              1036 ns/op
+Benchmark_NewArray0      1000000              1130 ns/op
+Benchmark_NewArray5      1000000              1314 ns/op
+Benchmark_NewArray20     1000000              1666 ns/op
+Benchmark_NewArray100    1000000              3124 ns/op
+Benchmark_Compile         200000             11059 ns/op
+Benchmark_PreCompile      200000             11697 ns/op
+Benchmark_RunScript      1000000              1085 ns/op
+Benchmark_JsFunction     1000000              1114 ns/op
+Benchmark_GoFunction     1000000              1630 ns/op
+Benchmark_Getter         1000000              2060 ns/op
+Benchmark_Setter         1000000              2934 ns/op
+Benchmark_TryCatch         50000             43097 ns/op
 ```
 
 How to use
@@ -183,7 +143,7 @@ Now, we need a context scope to run the script.
 ...
 	context := engine.NewContext(nil)
 
-	context.Scope(func(c *v8.Context){
+	context.Scope(func(cs v8.ContextScope) {
 		script.Run()
 	})
 ...
@@ -201,10 +161,11 @@ func main() {
 	script := engine.Compile([]byte("'Hello ' + 'World!'"), nil, nil)
 	context := engine.NewContext(nil)
 
-	context.Scope(func(c *v8.Context){
+	context.Scope(func(cs v8.ContextScope) {
 		result := script.Run()
 		println(result.ToString())
 	})
 }
+
 ```
 

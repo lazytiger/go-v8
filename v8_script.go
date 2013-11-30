@@ -63,7 +63,7 @@ func (e *Engine) Compile(code []byte, origin *ScriptOrigin, data *ScriptData) *S
 
 // Runs the script returning the resulting value.
 //
-func (s Script) Run() *Value {
+func (s *Script) Run() *Value {
 	return newValue(C.V8_Script_Run(s.self))
 }
 
