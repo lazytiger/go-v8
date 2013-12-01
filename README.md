@@ -70,66 +70,28 @@ The above command will run all of thread safe test and all of benchmark about Ar
 Below is the benchmark result on my iMac:
 
 ```
-Benchmark_NewContext        5000            249474 ns/op
-Benchmark_NewInteger     2000000               984 ns/op
-Benchmark_NewString      2000000               983 ns/op
-Benchmark_NewObject      1000000              1036 ns/op
-Benchmark_NewArray0      1000000              1130 ns/op
-Benchmark_NewArray5      1000000              1314 ns/op
-Benchmark_NewArray20     1000000              1666 ns/op
-Benchmark_NewArray100    1000000              3124 ns/op
-Benchmark_Compile         200000             11059 ns/op
-Benchmark_PreCompile      200000             11697 ns/op
-Benchmark_RunScript      1000000              1085 ns/op
-Benchmark_JsFunction     1000000              1114 ns/op
-Benchmark_GoFunction     1000000              1630 ns/op
-Benchmark_Getter         1000000              2060 ns/op
-Benchmark_Setter         1000000              2934 ns/op
-Benchmark_TryCatch         50000             43097 ns/op
+NewContext     249474 ns/op
+NewInteger        984 ns/op
+NewString         983 ns/op
+NewObject        1036 ns/op
+NewArray0        1130 ns/op
+NewArray5        1314 ns/op
+NewArray20       1666 ns/op
+NewArray100      3124 ns/op
+Compile         11059 ns/op
+PreCompile      11697 ns/op
+RunScript        1085 ns/op
+JsFunction       1114 ns/op
+GoFunction       1630 ns/op
+Getter           2060 ns/op
+Setter           2934 ns/op
+TryCatch        43097 ns/op
 ```
 
 Hello World
 ===========
 
-Let's write a Hello World program to learn how to use go-v8.
-
-At the begining, we need import go-v8 package and create a V8 engine instance.
-
-```go
-package main
-
-import "github.com/realint/go-v8"
-
-func main() {
-	engine := v8.NewEngine()
-}
-```
-
-NOTE: You can create many V8 engine but don't share any data (like Value, Object, Function and Context etc.) between engine instances.
-
-And then, we need to compile the JavaScript code that we want to run.
-
-```go
-...
-	script := engine.Compile([]byte("'Hello ' + 'World!'"), nil, nil)
-...
-```
-
-NOTE: Script can compile one time and run many times.
-
-Now, we need a context scope to run the script.
-
-```go
-...
-	context := engine.NewContext(nil)
-
-	context.Scope(func(cs v8.ContextScope) {
-		script.Run()
-	})
-...
-```
-
-Last we can get the result and print it.
+This 'Hello World' program shows how to use go-v8 to compile and run JavaScript code then get the result.
 
 ```go
 package main
@@ -148,3 +110,35 @@ func main() {
 }
 ```
 
+Contexts
+========
+
+The description in V8 embedding guide:
+
+```
+In V8, a context is an execution environment that allows separate, unrelated, JavaScript applications to run in a single instance of V8. You must explicitly specify the context in which you want any JavaScript code to be run.
+```
+
+In go-v8, you can create many contexts from a V8 engine instance. When you want to run some JavaScript in a context. You need to enter the context by calling Scope() and run the JavaScript in the callback.
+
+```go
+context.Scope(func(cs v8.ContextScope){
+	script.Run()
+})
+```
+
+Context in V8 is necessary. So in go-v8 you can do this:
+
+```go
+context.Scope(func(cs v8.ContextScope) {
+	context2 := engine.NewContext()
+	context2.Scope(func(cs2 v8.ContextScope) {
+
+	})
+})
+```
+
+More
+====
+
+Please read the 'v8_all_test.go'.
