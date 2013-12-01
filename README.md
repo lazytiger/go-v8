@@ -138,6 +138,10 @@ context.Scope(func(cs v8.ContextScope) {
 })
 ```
 
+But, please note. Don't take any JavaScript value out scope.
+
+When Scope() return, all of the JavaScript value created in this scope will be destroyed.
+
 More
 ====
 
