@@ -67,8 +67,6 @@ extern void V8_DisposeEngine(void* engine);
 
 extern void* V8_ParseJSON(void* context, const char* json, int json_length);
 
-extern void* V8_Current_Context(void *isolate);
-
 /*
 context
 */
@@ -329,7 +327,7 @@ extern void V8_DisposeFunctionTemplate(void* tpl);
 
 extern void* V8_FunctionTemplate_GetFunction(void* tpl);
 
-extern void V8_FunctionTemplate_SetClassName(void* tpl, const char* name);
+extern void V8_FunctionTemplate_SetClassName(void* tpl, const char* name, int name_length);
 
 extern void* V8_FunctionTemplate_InstanceTemplate(void* tpl);
 

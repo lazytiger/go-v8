@@ -435,7 +435,13 @@ func (e *Engine) NewFunctionTemplate(callback FunctionCallback) *FunctionTemplat
 		callback: callback,
 	}
 
-	self := C.V8_NewFunctionTemplate(e.self, unsafe.Pointer(&(ft.callback)))
+	var callbackPtr unsafe.Pointer
+
+	if callback != nil {
+		callbackPtr = unsafe.Pointer(&(ft.callback))
+	}
+
+	self := C.V8_NewFunctionTemplate(e.self, callbackPtr)
 	if self == nil {
 		return nil
 	}
@@ -479,7 +485,7 @@ func (ft *FunctionTemplate) SetClassName(name string) {
 	}
 
 	namePtr := unsafe.Pointer((*reflect.StringHeader)(unsafe.Pointer(&name)).Data)
-	C.V8_FunctionTemplate_SetClassName(ft.self, (*C.char)(namePtr))
+	C.V8_FunctionTemplate_SetClassName(ft.self, (*C.char)(namePtr), C.int(len(name)))
 }
 
 func (ft *FunctionTemplate) InstanceTemplate() *ObjectTemplate {
@@ -489,7 +495,7 @@ func (ft *FunctionTemplate) InstanceTemplate() *ObjectTemplate {
 	if ft.engine == nil {
 		panic("engine can't be nil")
 	}
-	
+
 	self := C.V8_FunctionTemplate_InstanceTemplate(ft.self)
 	return newObjectTemplate(ft.engine, self)
 }

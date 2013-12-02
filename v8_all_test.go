@@ -666,92 +666,68 @@ func Test_IndexedPropertyHandler(t *testing.T) {
 }
 
 func Test_ObjectConstructor(t *testing.T) {
-	type DemoTest struct {
-		name string
-	}
-	data := &DemoTest{}
+	Default.NewContext(nil).Scope(func(cs ContextScope) {
+		ftConstructor := Default.NewFunctionTemplate(nil)
+		ftConstructor.SetClassName("MyClass")
 
-	context := Default.NewContext(nil)
-	context.Scope(func(cs ContextScope) {
-		ftConstructor := Default.NewFunctionTemplate(func(info FunctionCallbackInfo) {
+		obj_template := ftConstructor.InstanceTemplate()
 
-		})
-		ftConstructor.SetClassName("DemoTest")
+		var (
+			get_called    = false
+			set_called    = false
+			query_called  = false
+			delete_called = false
+			enum_called   = false
+		)
 
-		ot := ftConstructor.InstanceTemplate()
-		ot.SetNamedPropertyHandler(
-			func(key string, info PropertyCallbackInfo) {
-				data := info.Data().(*DemoTest)
-				if key != "name" || data == nil {
-					return
-				}
-
-				info.ReturnValue().SetString(data.name)
+		obj_template.SetNamedPropertyHandler(
+			func(name string, info PropertyCallbackInfo) {
+				//t.Logf("get %s", name)
+				get_called = get_called || name == "abc"
 			},
-			func(key string, value *Value, info PropertyCallbackInfo) {
-				data := info.Data().(*DemoTest)
-				if key != "name" || data == nil {
-					return
-				}
-				data.name = value.ToString()
-				//info.ReturnValue().Set(value)
+			func(name string, value *Value, info PropertyCallbackInfo) {
+				//t.Logf("set %s", name)
+				set_called = set_called || name == "abc"
 			},
-			func(key string, info PropertyCallbackInfo) {
-				data := info.Data().(*DemoTest)
-				if key != "name" || data == nil {
-					return
-				}
-				info.ReturnValue().SetUint32(0)
+			func(name string, info PropertyCallbackInfo) {
+				//t.Logf("query %s", name)
+				query_called = query_called || name == "abc"
 			},
-			func(key string, info PropertyCallbackInfo) {
-				data := info.Data().(*DemoTest)
-				if key != "name" || data == nil {
-					return
-				}
-				info.ReturnValue().SetBoolean(false)
+			func(name string, info PropertyCallbackInfo) {
+				//t.Logf("delete %s", name)
+				delete_called = delete_called || name == "abc"
 			},
 			func(info PropertyCallbackInfo) {
-				names := cs.NewArray(1)
-				names.SetElement(0, cs.NewString("name"))
-				info.ReturnValue().Set(names.Value)
+				//t.Log("enumerate")
+				enum_called = true
 			},
-			data)
+			nil,
+		)
 
-		ft1 := Default.NewFunctionTemplate(func(info FunctionCallbackInfo) {
-			info.ReturnValue().Set(ot.NewObject())
-		})
+		cs.Global().SetProperty("MyClass", ftConstructor.NewFunction(), PA_None)
 
-		ft2 := Default.NewFunctionTemplate(func(info FunctionCallbackInfo) {
-			for i := 0; i < info.Length(); i++ {
-				println(info.Get(i).ToString())
+		if !cs.Eval([]byte("(new MyClass) instanceof MyClass")).IsTrue() {
+			t.Fatal("(new MyClass) instanceof MyClass == false")
+		}
+
+		object := cs.Eval([]byte(`
+			var data = new MyClass;
+			var temp = data.abc;
+			data.abc = 1;
+			delete data.abc;
+			for (var p in data) {
 			}
-		})
-		//ft1.SetClassName("DemoTest")
-		global := cs.Global()
-		global.SetProperty("DemoTest", ft1.NewFunction(), 0)
-		global.SetProperty("println", ft2.NewFunction(), 0)
-		script := Default.Compile([]byte(`var data = new DemoTest();
-		println(data.constructor);
-		println(Object.prototype.toString.call(data));
-		println(typeof(data))
-		if(data instanceof DemoTest) {
-			println("data is DemoTest");
-		}
-		else {
-			println("data is not DemoTest");
-		}
-		for(var key in data) {
-			println(key);
-		}
-		data.name = "hello";
-		delete data.name;
-		println(data.name)
-	`), nil, nil)
-		if script != nil {
-			script.Run()
+			data;
+		`)).ToObject()
+
+		object.GetPropertyAttributes("abc")
+
+		if !(get_called && set_called && query_called && delete_called && enum_called) {
+			t.Fatal(get_called, set_called, query_called, delete_called, enum_called)
 		}
 	})
 
+	runtime.GC()
 }
 
 func Test_Context(t *testing.T) {

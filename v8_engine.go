@@ -47,14 +47,6 @@ func NewEngine() *Engine {
 	return result
 }
 
-func (engine *Engine) CurrentContext() *Context {
-	c := C.V8_Current_Context(engine.self)
-	if c == nil {
-		panic("please call this inside a context")
-	}
-	return &Context{c, engine}
-}
-
 //export v8_panic
 func v8_panic(message *C.char) {
 	panic(C.GoString(message))

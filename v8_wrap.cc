@@ -1395,7 +1395,7 @@ void* V8_NewFunctionTemplate(void* engine, void* callback) {
 	callback_data->Set(0, External::New(engine));
 	callback_data->Set(1, External::New(callback));
 
-	Handle<FunctionTemplate> tpl = FunctionTemplate::New(
+	Handle<FunctionTemplate> tpl = callback == NULL ? FunctionTemplate::New() : FunctionTemplate::New(
 		V8_FunctionCallback, callback_data
 	);
 
@@ -1415,9 +1415,11 @@ void* V8_FunctionTemplate_GetFunction(void* tpl) {
 	return new_V8_Value(the_context, local_template->GetFunction());
 }
 
-void V8_FunctionTemplate_SetClassName(void* tpl, const char* name) {
+void V8_FunctionTemplate_SetClassName(void* tpl, const char* name, int name_length) {
 	FUNCTION_TEMPLATE_SCOPE(tpl);
-	return local_template->SetClassName(String::NewFromUtf8(isolate, name));
+	return local_template->SetClassName(
+		String::NewFromOneByte(isolate, (uint8_t*)name, String::kNormalString, name_length)
+	);
 }
 
 void* V8_FunctionTemplate_InstanceTemplate(void* tpl) {
