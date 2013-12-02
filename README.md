@@ -130,18 +130,30 @@ When you want to run some JavaScript. You need to compile first.
 
 Scripts can run many times or run in different context.
 
-```
-script := engine.Compile([]byte{`"Hello " + "World!"`}, nil, nil)
+```go
+script := engine.Compile([]byte(`"Hello " + "World!"`), nil, nil)
 ```
 
-The Engine.Compile() method take 3 arguments. The first is the code. The second is a ScriptOrigin, it stores script's file name or line number offset etc.
+The Engine.Compile() method take 3 arguments. 
+
+The first is the code.
+
+The second is a ScriptOrigin, it stores script's file name or line number offset etc. You can use ScriptOrigin to make error message and stack trace friendly.
+
+```go
+name := "my_file.js"
+real := ReadFile(name)
+code := "function(_export){\n" + realcode + "\n}"
+origin := engine.NewScriptOrigin(name, 1, 0)
+```
 
 The third is a ScriptData, it's pre-parsing data, as obtained by Engine.PreCompile(). If you want to compile a script many time, you can use ScriptData to speeds compilation. 
 
-```
-data := engine.PreCompile([]byte{`"Hello " + "World!"`})
-script1 := engine.Compile([]byte{`"Hello " + "World!"`}, nil, data)
-script2 := engine.Compile([]byte{`"Hello " + "World!"`}, nil, data)
+```go
+code := []byte(`"Hello " + "World!"`)
+data := engine.PreCompile(code)
+script1 := engine.Compile(code, nil, data)
+script2 := engine.Compile(code, nil, data)
 ```
 
 Context
