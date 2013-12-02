@@ -77,7 +77,7 @@ func Test_Allocator(t *testing.T) {
 
 func Test_MessageListener(t *testing.T) {
 	engine.NewContext(nil).Scope(func(cs ContextScope) {
-		cs.AddMessageListener(true, func(message string, data interface{}){
+		cs.AddMessageListener(true, func(message string, data interface{}) {
 			println("golang", message)
 		}, nil)
 		script := engine.Compile([]byte(`var test[ = ;`), nil, nil)

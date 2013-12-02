@@ -124,7 +124,7 @@ type ArrayBufferAllocator struct {
 	self unsafe.Pointer
 }
 
-// Call this to get a new ArrayBufferAllocator 
+// Call this to get a new ArrayBufferAllocator
 func NewArrayBufferAllocator() *ArrayBufferAllocator {
 	allocator := &ArrayBufferAllocator{}
 	runtime.SetFinalizer(allocator, func(allocator *ArrayBufferAllocator) {
