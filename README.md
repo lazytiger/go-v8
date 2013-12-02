@@ -180,7 +180,7 @@ context.Scope(func(cs v8.ContextScope) {
 
 Please note. Don't take any JavaScript value out scope.
 
-When the outtermost Scope() return, all of the JavaScript value created in this scope or nested scope will be destroyed.
+When the outermost Scope() return, all of the JavaScript value created in this scope or nested scope will be destroyed.
 
 More
 ----
