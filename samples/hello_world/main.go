@@ -1,6 +1,6 @@
 package main
 
-import "github.com/realint/go-v8"
+import "github.com/idada/go-v8"
 
 func main() {
 	engine := v8.NewEngine()
