@@ -176,8 +176,6 @@ void* new_V8_Value(V8_Context* context, Handle<Value> value) {
 	return (void*)new V8_Value(context, value);
 }
 
-extern void v8_panic(char* message);
-
 /*
 engine
 */
@@ -269,11 +267,16 @@ void V8_Context_Scope(void* context, void* context_ptr, void* callback) {
 	isolate->SetData(prev_context);
 }
 
-V8_Context* V8_Current_Context(Isolate *isolate) {
+void* V8_Current_Context(void* engine) {
+	ISOLATE_SCOPE(static_cast<Isolate*>(engine));
+	return isolate->GetData();
+}
+
+V8_Context* v8_Current_Context(Isolate* isolate) {
 	void* data = isolate->GetData();
 	if (data == NULL)
 		v8_panic((char*)"Please call this API in a context scope");
-	return static_cast<V8_Context*>(data);
+	return static_cast<V8_Context*>(V8_Current_Context(isolate));
 }
 
 void* V8_Context_Global(void* context) {
@@ -389,7 +392,7 @@ void V8_DisposeScript(void* script) {
 void* V8_Script_Run(void* script) {
 	V8_Script* the_script = static_cast<V8_Script*>(script);
 	ISOLATE_SCOPE(the_script->engine->GetIsolate());
-	V8_Context* the_context = V8_Current_Context(isolate);
+	V8_Context* the_context = v8_Current_Context(isolate);
 	Local<Script> local_script = Local<Script>::New(isolate, the_script->self);
 
 	return new_V8_Value(the_context, local_script->Run());
@@ -1173,7 +1176,7 @@ void V8_ObjectTemplate_SetProperty(void* tpl, const char* key, int key_length, v
 
 void* V8_ObjectTemplate_NewObject(void* tpl) {
 	OBJECT_TEMPLATE_SCOPE(tpl);
-	V8_Context* the_context = V8_Current_Context(isolate);
+	V8_Context* the_context = v8_Current_Context(isolate);
 	return new_V8_Value(the_context, local_template->NewInstance());
 }
 
@@ -1223,7 +1226,7 @@ void V8_NamedPropertyGetterCallbackBase(
 	}
 	if (typ == OTP_Setter) {
 		callback_info.setValue = new_V8_Value(
-			V8_Current_Context(isolate_ptr),
+			v8_Current_Context(isolate_ptr),
 			value
 		);
 	}
@@ -1310,7 +1313,7 @@ void V8_IndexedPropertyGetterCallbackBase(
 	callback_info.index = index;
 	if (typ == OTP_Setter) {
 		callback_info.setValue = new_V8_Value(
-			V8_Current_Context(isolate_ptr),
+			v8_Current_Context(isolate_ptr),
 			value
 		);
 	}
@@ -1408,8 +1411,19 @@ void V8_DisposeFunctionTemplate(void* tpl) {
 
 void* V8_FunctionTemplate_GetFunction(void* tpl) {
 	FUNCTION_TEMPLATE_SCOPE(tpl);
-	V8_Context* the_context = V8_Current_Context(isolate);
+	V8_Context* the_context = v8_Current_Context(isolate);
 	return new_V8_Value(the_context, local_template->GetFunction());
+}
+
+void V8_FunctionTemplate_SetClassName(void* tpl, const char* name) {
+	FUNCTION_TEMPLATE_SCOPE(tpl);
+	return local_template->SetClassName(String::NewFromUtf8(isolate, name));
+}
+
+void* V8_FunctionTemplate_InstanceTemplate(void* tpl) {
+	FUNCTION_TEMPLATE_SCOPE(tpl);
+	V8_Context* the_context = v8_Current_Context(isolate);
+	return new V8_ObjectTemplate(the_context, local_template->InstanceTemplate());
 }
 
 const char* V8_GetVersion() {

@@ -665,6 +665,95 @@ func Test_IndexedPropertyHandler(t *testing.T) {
 	runtime.GC()
 }
 
+func Test_ObjectConstructor(t *testing.T) {
+	type DemoTest struct {
+		name string
+	}
+	data := &DemoTest{}
+
+	context := Default.NewContext(nil)
+	context.Scope(func(cs ContextScope) {
+		ftConstructor := Default.NewFunctionTemplate(func(info FunctionCallbackInfo) {
+
+		})
+		ftConstructor.SetClassName("DemoTest")
+
+		ot := ftConstructor.InstanceTemplate()
+		ot.SetNamedPropertyHandler(
+			func(key string, info PropertyCallbackInfo) {
+				data := info.Data().(*DemoTest)
+				if key != "name" || data == nil {
+					return
+				}
+
+				info.ReturnValue().SetString(data.name)
+			},
+			func(key string, value *Value, info PropertyCallbackInfo) {
+				data := info.Data().(*DemoTest)
+				if key != "name" || data == nil {
+					return
+				}
+				data.name = value.ToString()
+				//info.ReturnValue().Set(value)
+			},
+			func(key string, info PropertyCallbackInfo) {
+				data := info.Data().(*DemoTest)
+				if key != "name" || data == nil {
+					return
+				}
+				info.ReturnValue().SetUint32(0)
+			},
+			func(key string, info PropertyCallbackInfo) {
+				data := info.Data().(*DemoTest)
+				if key != "name" || data == nil {
+					return
+				}
+				info.ReturnValue().SetBoolean(false)
+			},
+			func(info PropertyCallbackInfo) {
+				names := cs.NewArray(1)
+				names.SetElement(0, cs.NewString("name"))
+				info.ReturnValue().Set(names.Value)
+			},
+			data)
+
+		ft1 := Default.NewFunctionTemplate(func(info FunctionCallbackInfo) {
+			info.ReturnValue().Set(ot.NewObject())
+		})
+
+		ft2 := Default.NewFunctionTemplate(func(info FunctionCallbackInfo) {
+			for i := 0; i < info.Length(); i++ {
+				println(info.Get(i).ToString())
+			}
+		})
+		//ft1.SetClassName("DemoTest")
+		global := cs.Global()
+		global.SetProperty("DemoTest", ft1.NewFunction(), 0)
+		global.SetProperty("println", ft2.NewFunction(), 0)
+		script := Default.Compile([]byte(`var data = new DemoTest();
+		println(data.constructor);
+		println(Object.prototype.toString.call(data));
+		println(typeof(data))
+		if(data instanceof DemoTest) {
+			println("data is DemoTest");
+		}
+		else {
+			println("data is not DemoTest");
+		}
+		for(var key in data) {
+			println(key);
+		}
+		data.name = "hello";
+		delete data.name;
+		println(data.name)
+	`), nil, nil)
+		if script != nil {
+			script.Run()
+		}
+	})
+
+}
+
 func Test_Context(t *testing.T) {
 	script1 := Default.Compile([]byte("typeof(Test_Context) == 'undefined';"), nil, nil)
 	script2 := Default.Compile([]byte("Test_Context = 1;"), nil, nil)
