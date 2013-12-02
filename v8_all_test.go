@@ -665,7 +665,7 @@ func Test_IndexedPropertyHandler(t *testing.T) {
 	runtime.GC()
 }
 
-func Test_ObjectContructor(t *testing.T) {
+func Test_ObjectConstructor(t *testing.T) {
 	type DemoTest struct {
 		name string
 	}
@@ -693,7 +693,8 @@ func Test_ObjectContructor(t *testing.T) {
 				if key != "name" || data == nil {
 					return
 				}
-				info.ReturnValue().Set(value)
+				data.name = value.ToString()
+				//info.ReturnValue().Set(value)
 			},
 			func(key string, info PropertyCallbackInfo) {
 				data := info.Data().(*DemoTest)
@@ -733,11 +734,18 @@ func Test_ObjectContructor(t *testing.T) {
 		println(data.constructor);
 		println(Object.prototype.toString.call(data));
 		println(typeof(data))
-		println(data instanceof DemoTest);
+		if(data instanceof DemoTest) {
+			println("data is DemoTest");
+		}
+		else {
+			println("data is not DemoTest");
+		}
 		for(var key in data) {
 			println(key);
 		}
-	delete data.name;
+		data.name = "hello";
+		delete data.name;
+		println(data.name)
 	`), nil, nil)
 		if script != nil {
 			script.Run()
