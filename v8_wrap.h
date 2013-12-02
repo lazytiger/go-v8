@@ -58,6 +58,10 @@ extern const char* V8_GetVersion();
 
 extern void V8_SetFlagsFromString(const char* str, int length);
 
+extern void* V8_SetArrayBufferAllocator(void* raw, void* ac, void* fc);
+
+extern void V8_Dispose_Allocator(void* raw);
+
 /*
 engine
 */
