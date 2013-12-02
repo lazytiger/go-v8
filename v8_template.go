@@ -180,13 +180,22 @@ func (ot *ObjectTemplate) SetAccessor(
 
 	ot.accessors[key] = info
 
+	var getterPointer, setterPointer unsafe.Pointer
+	if info.getter != nil {
+		getterPointer = unsafe.Pointer(&info.getter)
+	}
+
+	if info.setter != nil {
+		setterPointer = unsafe.Pointer(&info.setter)
+	}
+
 	keyPtr := unsafe.Pointer((*reflect.StringHeader)(unsafe.Pointer(&info.key)).Data)
 
 	C.V8_ObjectTemplate_SetAccessor(
 		ot.self,
 		(*C.char)(keyPtr), C.int(len(info.key)),
-		unsafe.Pointer(&(info.getter)),
-		unsafe.Pointer(&(info.setter)),
+		getterPointer,
+		setterPointer,
 		unsafe.Pointer(&(info.data)),
 		C.int(info.attribs),
 	)
@@ -210,16 +219,35 @@ func (ot *ObjectTemplate) SetNamedPropertyHandler(
 	}
 
 	ot.namedInfo = info
+	var getterPointer, setterPointer, queryPointer, deleterPointer, enumeratorPointer unsafe.Pointer
+	if info.getter != nil {
+		getterPointer = unsafe.Pointer(&info.getter)
+	}
+
+	if info.setter != nil {
+		setterPointer = unsafe.Pointer(&info.setter)
+	}
+
+	if info.query != nil {
+		queryPointer = unsafe.Pointer(&info.query)
+	}
+
+	if info.deleter != nil {
+		deleterPointer = unsafe.Pointer(&info.deleter)
+	}
+
+	if info.enumerator != nil {
+		enumeratorPointer = unsafe.Pointer(&info.enumerator)
+	}
 
 	C.V8_ObjectTemplate_SetNamedPropertyHandler(
 		ot.self,
-		unsafe.Pointer(&(info.getter)),
-		unsafe.Pointer(&(info.setter)),
-		unsafe.Pointer(&(info.query)),
-		unsafe.Pointer(&(info.deleter)),
-		unsafe.Pointer(&(info.enumerator)),
-		unsafe.Pointer(&(info.data)),
-	)
+		getterPointer,
+		setterPointer,
+		queryPointer,
+		deleterPointer,
+		enumeratorPointer,
+		unsafe.Pointer(&data))
 }
 
 func (ot *ObjectTemplate) SetIndexedPropertyHandler(
@@ -239,17 +267,37 @@ func (ot *ObjectTemplate) SetIndexedPropertyHandler(
 		data:       data,
 	}
 
+	var getterPointer, setterPointer, queryPointer, deleterPointer, enumeratorPointer unsafe.Pointer
+	if info.getter != nil {
+		getterPointer = unsafe.Pointer(&info.getter)
+	}
+
+	if info.setter != nil {
+		setterPointer = unsafe.Pointer(&info.setter)
+	}
+
+	if info.query != nil {
+		queryPointer = unsafe.Pointer(&info.query)
+	}
+
+	if info.deleter != nil {
+		deleterPointer = unsafe.Pointer(&info.deleter)
+	}
+
+	if info.enumerator != nil {
+		enumeratorPointer = unsafe.Pointer(&info.enumerator)
+	}
+
 	ot.indexedInfo = info
 
 	C.V8_ObjectTemplate_SetIndexedPropertyHandler(
 		ot.self,
-		unsafe.Pointer(&(info.getter)),
-		unsafe.Pointer(&(info.setter)),
-		unsafe.Pointer(&(info.query)),
-		unsafe.Pointer(&(info.deleter)),
-		unsafe.Pointer(&(info.enumerator)),
-		unsafe.Pointer(&(info.data)),
-	)
+		getterPointer,
+		setterPointer,
+		queryPointer,
+		deleterPointer,
+		enumeratorPointer,
+		unsafe.Pointer(&data))
 }
 
 type PropertyCallbackInfo struct {
