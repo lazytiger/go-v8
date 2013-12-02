@@ -60,7 +60,7 @@ func Test_GetVersion(t *testing.T) {
 
 func Test_HelloWorld(t *testing.T) {
 	engine.NewContext(nil).Scope(func(cs ContextScope) {
-		if cs.Eval([]byte("'Hello ' + 'World!'")).ToString() != "Hello World!" {
+		if cs.Eval("'Hello ' + 'World!'").ToString() != "Hello World!" {
 			t.Fatal("result not match")
 		}
 	})
@@ -157,59 +157,59 @@ func Test_Values(t *testing.T) {
 			maxNumber = int64(maxUint64)
 		)
 
-		if engine.NewBoolean(true).ToBoolean() != true {
+		if cs.NewBoolean(true).ToBoolean() != true {
 			t.Fatal(`NewBoolean(true).ToBoolean() != true`)
 		}
 
-		if engine.NewNumber(12.34).ToNumber() != 12.34 {
+		if cs.NewNumber(12.34).ToNumber() != 12.34 {
 			t.Fatal(`NewNumber(12.34).ToNumber() != 12.34`)
 		}
 
-		if engine.NewNumber(float64(maxNumber)).ToInteger() != maxNumber {
+		if cs.NewNumber(float64(maxNumber)).ToInteger() != maxNumber {
 			t.Fatal(`NewNumber(float64(maxNumber)).ToInteger() != maxNumber`)
 		}
 
-		if engine.NewInteger(maxInt32).IsInt32() == false {
+		if cs.NewInteger(maxInt32).IsInt32() == false {
 			t.Fatal(`NewInteger(maxInt32).IsInt32() == false`)
 		}
 
-		if engine.NewInteger(maxUint32).IsInt32() != false {
+		if cs.NewInteger(maxUint32).IsInt32() != false {
 			t.Fatal(`NewInteger(maxUint32).IsInt32() != false`)
 		}
 
-		if engine.NewInteger(maxUint32).IsUint32() == false {
+		if cs.NewInteger(maxUint32).IsUint32() == false {
 			t.Fatal(`NewInteger(maxUint32).IsUint32() == false`)
 		}
 
-		if engine.NewInteger(maxNumber).ToInteger() != maxNumber {
+		if cs.NewInteger(maxNumber).ToInteger() != maxNumber {
 			t.Fatal(`NewInteger(maxNumber).ToInteger() != maxNumber`)
 		}
 
-		if engine.NewString("Hello World!").ToString() != "Hello World!" {
+		if cs.NewString("Hello World!").ToString() != "Hello World!" {
 			t.Fatal(`NewString("Hello World!").ToString() != "Hello World!"`)
 		}
 
-		if engine.NewObject().IsObject() == false {
+		if cs.NewObject().IsObject() == false {
 			t.Fatal(`NewObject().IsObject() == false`)
 		}
 
-		if engine.NewArray(5).IsArray() == false {
+		if cs.NewArray(5).IsArray() == false {
 			t.Fatal(`NewArray(5).IsArray() == false`)
 		}
 
-		if engine.NewArray(5).ToArray().Length() != 5 {
+		if cs.NewArray(5).ToArray().Length() != 5 {
 			t.Fatal(`NewArray(5).Length() != 5`)
 		}
 
-		if engine.NewRegExp("foo", RF_None).IsRegExp() == false {
+		if cs.NewRegExp("foo", RF_None).IsRegExp() == false {
 			t.Fatal(`NewRegExp("foo", RF_None).IsRegExp() == false`)
 		}
 
-		if engine.NewRegExp("foo", RF_Global).ToRegExp().Pattern() != "foo" {
+		if cs.NewRegExp("foo", RF_Global).ToRegExp().Pattern() != "foo" {
 			t.Fatal(`NewRegExp("foo", RF_Global).ToRegExp().Pattern() != "foo"`)
 		}
 
-		if engine.NewRegExp("foo", RF_Global).ToRegExp().Flags() != RF_Global {
+		if cs.NewRegExp("foo", RF_Global).ToRegExp().Flags() != RF_Global {
 			t.Fatal(`NewRegExp("foo", RF_Global).ToRegExp().Flags() != RF_Global`)
 		}
 	})
@@ -437,9 +437,9 @@ func Test_Function(t *testing.T) {
 		}
 
 		result := value.ToFunction().Call(
-			engine.NewInteger(1),
-			engine.NewInteger(2),
-			engine.NewInteger(3),
+			cs.NewInteger(1),
+			cs.NewInteger(2),
+			cs.NewInteger(3),
 		)
 
 		if result.IsNumber() == false {
@@ -462,7 +462,7 @@ func Test_Function(t *testing.T) {
 		}
 
 		if function.ToFunction().Call(
-			engine.NewString("Hello World!"),
+			cs.NewString("Hello World!"),
 		).IsTrue() == false {
 			t.Fatal("callback return not match")
 		}
@@ -490,11 +490,11 @@ func Test_Accessor(t *testing.T) {
 			PA_None,
 		)
 
-		template.SetProperty("def", engine.NewInteger(8888), PA_None)
+		template.SetProperty("def", cs.NewInteger(8888), PA_None)
 
 		values := []*Value{
 			template.NewObject(), // New
-			engine.NewObject(),   // Wrap
+			cs.NewObject(),       // Wrap
 		}
 		template.WrapObject(values[1])
 
@@ -509,7 +509,7 @@ func Test_Accessor(t *testing.T) {
 				t.Fatal(`object.GetProperty("abc").ToInt32() != 1234`)
 			}
 
-			object.SetProperty("abc", engine.NewInteger(5678), PA_None)
+			object.SetProperty("abc", cs.NewInteger(5678), PA_None)
 
 			if propertyValue != 5678 {
 				t.Fatal(`propertyValue != 5678`)
@@ -577,17 +577,17 @@ func Test_NamedPropertyHandler(t *testing.T) {
 		object := obj_template.NewObject().ToObject()
 
 		object.GetProperty("abc")
-		object.SetProperty("abc", engine.NewInteger(123), PA_None)
+		object.SetProperty("abc", cs.NewInteger(123), PA_None)
 		object.GetPropertyAttributes("abc")
 
-		cs.Eval([]byte(`
+		cs.Eval(`
 			var data = GetData();
 
 			delete data.abc;
 
 			for (var p in data) {
 			}
-		`))
+		`)
 	})
 
 	if !(get_called && set_called && query_called && delete_called && enum_called) {
@@ -646,16 +646,16 @@ func Test_IndexedPropertyHandler(t *testing.T) {
 		object := obj_template.NewObject().ToObject()
 
 		object.GetElement(1)
-		object.SetElement(1, engine.NewInteger(123))
+		object.SetElement(1, cs.NewInteger(123))
 
-		cs.Eval([]byte(`
+		cs.Eval(`
 			var data = GetData();
 
 			delete data[1];
 
 			for (var p in data) {
 			}
-		`))
+		`)
 	})
 
 	if !(get_called && set_called && query_called && delete_called && enum_called) {
@@ -666,51 +666,51 @@ func Test_IndexedPropertyHandler(t *testing.T) {
 }
 
 func Test_ObjectConstructor(t *testing.T) {
+	ftConstructor := engine.NewFunctionTemplate(nil)
+	ftConstructor.SetClassName("MyClass")
+
+	obj_template := ftConstructor.InstanceTemplate()
+
+	var (
+		get_called    = false
+		set_called    = false
+		query_called  = false
+		delete_called = false
+		enum_called   = false
+	)
+
+	obj_template.SetNamedPropertyHandler(
+		func(name string, info PropertyCallbackInfo) {
+			//t.Logf("get %s", name)
+			get_called = get_called || name == "abc"
+		},
+		func(name string, value *Value, info PropertyCallbackInfo) {
+			//t.Logf("set %s", name)
+			set_called = set_called || name == "abc"
+		},
+		func(name string, info PropertyCallbackInfo) {
+			//t.Logf("query %s", name)
+			query_called = query_called || name == "abc"
+		},
+		func(name string, info PropertyCallbackInfo) {
+			//t.Logf("delete %s", name)
+			delete_called = delete_called || name == "abc"
+		},
+		func(info PropertyCallbackInfo) {
+			//t.Log("enumerate")
+			enum_called = true
+		},
+		nil,
+	)
+
 	engine.NewContext(nil).Scope(func(cs ContextScope) {
-		ftConstructor := engine.NewFunctionTemplate(nil)
-		ftConstructor.SetClassName("MyClass")
-
-		obj_template := ftConstructor.InstanceTemplate()
-
-		var (
-			get_called    = false
-			set_called    = false
-			query_called  = false
-			delete_called = false
-			enum_called   = false
-		)
-
-		obj_template.SetNamedPropertyHandler(
-			func(name string, info PropertyCallbackInfo) {
-				//t.Logf("get %s", name)
-				get_called = get_called || name == "abc"
-			},
-			func(name string, value *Value, info PropertyCallbackInfo) {
-				//t.Logf("set %s", name)
-				set_called = set_called || name == "abc"
-			},
-			func(name string, info PropertyCallbackInfo) {
-				//t.Logf("query %s", name)
-				query_called = query_called || name == "abc"
-			},
-			func(name string, info PropertyCallbackInfo) {
-				//t.Logf("delete %s", name)
-				delete_called = delete_called || name == "abc"
-			},
-			func(info PropertyCallbackInfo) {
-				//t.Log("enumerate")
-				enum_called = true
-			},
-			nil,
-		)
-
 		cs.Global().SetProperty("MyClass", ftConstructor.NewFunction(), PA_None)
 
-		if !cs.Eval([]byte("(new MyClass) instanceof MyClass")).IsTrue() {
+		if !cs.Eval("(new MyClass) instanceof MyClass").IsTrue() {
 			t.Fatal("(new MyClass) instanceof MyClass == false")
 		}
 
-		object := cs.Eval([]byte(`
+		object := cs.Eval(`
 			var data = new MyClass;
 			var temp = data.abc;
 			data.abc = 1;
@@ -718,7 +718,7 @@ func Test_ObjectConstructor(t *testing.T) {
 			for (var p in data) {
 			}
 			data;
-		`)).ToObject()
+		`).ToObject()
 
 		object.GetPropertyAttributes("abc")
 
@@ -769,7 +769,7 @@ func Test_Context(t *testing.T) {
 	}, nil, nil, PA_None)
 
 	engine.NewContext(globalTemplate).Scope(func(cs ContextScope) {
-		cs.Eval([]byte(`log("Hello World!")`))
+		cs.Eval(`log("Hello World!")`)
 	})
 
 	// Test Global Object
@@ -786,7 +786,7 @@ func Test_Context(t *testing.T) {
 			return
 		}
 
-		cs.Eval([]byte(`println("Hello World!")`))
+		cs.Eval(`println("Hello World!")`)
 	})
 
 	runtime.GC()
@@ -1079,7 +1079,7 @@ func Benchmark_NewContext(b *testing.B) {
 func Benchmark_NewInteger(b *testing.B) {
 	engine.NewContext(nil).Scope(func(cs ContextScope) {
 		for i := 0; i < b.N; i++ {
-			engine.NewInteger(int64(i))
+			cs.NewInteger(int64(i))
 		}
 	})
 
@@ -1091,7 +1091,7 @@ func Benchmark_NewInteger(b *testing.B) {
 func Benchmark_NewString(b *testing.B) {
 	engine.NewContext(nil).Scope(func(cs ContextScope) {
 		for i := 0; i < b.N; i++ {
-			engine.NewString("Hello World!")
+			cs.NewString("Hello World!")
 		}
 	})
 
@@ -1103,7 +1103,7 @@ func Benchmark_NewString(b *testing.B) {
 func Benchmark_NewObject(b *testing.B) {
 	engine.NewContext(nil).Scope(func(cs ContextScope) {
 		for i := 0; i < b.N; i++ {
-			engine.NewObject()
+			cs.NewObject()
 		}
 	})
 
@@ -1115,7 +1115,7 @@ func Benchmark_NewObject(b *testing.B) {
 func Benchmark_NewArray0(b *testing.B) {
 	engine.NewContext(nil).Scope(func(cs ContextScope) {
 		for i := 0; i < b.N; i++ {
-			engine.NewArray(0)
+			cs.NewArray(0)
 		}
 	})
 
@@ -1127,7 +1127,7 @@ func Benchmark_NewArray0(b *testing.B) {
 func Benchmark_NewArray5(b *testing.B) {
 	engine.NewContext(nil).Scope(func(cs ContextScope) {
 		for i := 0; i < b.N; i++ {
-			engine.NewArray(5)
+			cs.NewArray(5)
 		}
 	})
 
@@ -1139,7 +1139,7 @@ func Benchmark_NewArray5(b *testing.B) {
 func Benchmark_NewArray20(b *testing.B) {
 	engine.NewContext(nil).Scope(func(cs ContextScope) {
 		for i := 0; i < b.N; i++ {
-			engine.NewArray(20)
+			cs.NewArray(20)
 		}
 	})
 
@@ -1151,7 +1151,7 @@ func Benchmark_NewArray20(b *testing.B) {
 func Benchmark_NewArray100(b *testing.B) {
 	engine.NewContext(nil).Scope(func(cs ContextScope) {
 		for i := 0; i < b.N; i++ {
-			engine.NewArray(100)
+			cs.NewArray(100)
 		}
 	})
 
@@ -1316,7 +1316,7 @@ func Benchmark_Setter(b *testing.B) {
 		b.StartTimer()
 
 		for i := 0; i < b.N; i++ {
-			object.SetProperty("abc", engine.NewInteger(5678), PA_None)
+			object.SetProperty("abc", cs.NewInteger(5678), PA_None)
 		}
 	})
 
@@ -1329,7 +1329,7 @@ func Benchmark_TryCatch(b *testing.B) {
 	engine.NewContext(nil).Scope(func(cs ContextScope) {
 		for i := 0; i < b.N; i++ {
 			cs.TryCatch(false, func() {
-				cs.Eval([]byte("a[=1;"))
+				cs.Eval("a[=1;")
 			})
 		}
 	})

@@ -20,8 +20,8 @@ var (
 	jsonNull        = []byte("null")
 )
 
-func (cs ContextScope) Eval(code []byte) *Value {
-	if script := cs.context.engine.Compile(code, nil, nil); script != nil {
+func (cs ContextScope) Eval(code string) *Value {
+	if script := cs.context.engine.Compile([]byte(code), nil, nil); script != nil {
 		return script.Run()
 	}
 	return nil

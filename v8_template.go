@@ -257,6 +257,11 @@ type PropertyCallbackInfo struct {
 	typ         C.PropertyDataEnum
 	data        interface{}
 	returnValue ReturnValue
+	context     *Context
+}
+
+func (p PropertyCallbackInfo) CurrentScope() ContextScope {
+	return ContextScope{p.context}
 }
 
 func (p PropertyCallbackInfo) This() *Object {
@@ -284,6 +289,11 @@ type GetterCallbackInfo struct {
 	self        unsafe.Pointer
 	data        interface{}
 	returnValue ReturnValue
+	context     *Context
+}
+
+func (g GetterCallbackInfo) CurrentScope() ContextScope {
+	return ContextScope{g.context}
 }
 
 func (g GetterCallbackInfo) This() *Object {
@@ -308,8 +318,13 @@ func (g *GetterCallbackInfo) ReturnValue() ReturnValue {
 // Property setter callback info
 //
 type SetterCallbackInfo struct {
-	self unsafe.Pointer
-	data interface{}
+	self    unsafe.Pointer
+	data    interface{}
+	context *Context
+}
+
+func (s SetterCallbackInfo) CurrentScope() ContextScope {
+	return ContextScope{s.context}
 }
 
 func (s SetterCallbackInfo) This() *Object {
@@ -329,7 +344,7 @@ type GetterCallback func(name string, info GetterCallbackInfo)
 type SetterCallback func(name string, value *Value, info SetterCallbackInfo)
 
 //export go_accessor_callback
-func go_accessor_callback(typ C.AccessorDataEnum, info *C.V8_AccessorCallbackInfo) {
+func go_accessor_callback(typ C.AccessorDataEnum, info *C.V8_AccessorCallbackInfo, context unsafe.Pointer) {
 	name := reflect.StringHeader{
 		Data: uintptr(unsafe.Pointer(info.key)),
 		Len:  int(info.key_length),
@@ -339,19 +354,19 @@ func go_accessor_callback(typ C.AccessorDataEnum, info *C.V8_AccessorCallbackInf
 	case C.OTA_Getter:
 		(*(*GetterCallback)(info.callback))(
 			gname,
-			GetterCallbackInfo{unsafe.Pointer(info), *(*interface{})(info.data), ReturnValue{}})
+			GetterCallbackInfo{unsafe.Pointer(info), *(*interface{})(info.data), ReturnValue{}, (*Context)(context)})
 	case C.OTA_Setter:
 		(*(*SetterCallback)(info.callback))(
 			gname,
 			newValue(info.setValue),
-			SetterCallbackInfo{unsafe.Pointer(info), *(*interface{})(info.data)})
+			SetterCallbackInfo{unsafe.Pointer(info), *(*interface{})(info.data), (*Context)(context)})
 	default:
 		panic("impossible type")
 	}
 }
 
 //export go_named_property_callback
-func go_named_property_callback(typ C.PropertyDataEnum, info *C.V8_PropertyCallbackInfo) {
+func go_named_property_callback(typ C.PropertyDataEnum, info *C.V8_PropertyCallbackInfo, context unsafe.Pointer) {
 	gname := ""
 	if info.key != nil {
 		gname = C.GoString(info.key)
@@ -359,44 +374,44 @@ func go_named_property_callback(typ C.PropertyDataEnum, info *C.V8_PropertyCallb
 	switch typ {
 	case C.OTP_Getter:
 		(*(*NamedPropertyGetterCallback)(info.callback))(
-			gname, PropertyCallbackInfo{unsafe.Pointer(info), typ, *(*interface{})(info.data), ReturnValue{}})
+			gname, PropertyCallbackInfo{unsafe.Pointer(info), typ, *(*interface{})(info.data), ReturnValue{}, (*Context)(context)})
 	case C.OTP_Setter:
 		(*(*NamedPropertySetterCallback)(info.callback))(
 			gname,
 			newValue(info.setValue),
-			PropertyCallbackInfo{unsafe.Pointer(info), typ, *(*interface{})(info.data), ReturnValue{}})
+			PropertyCallbackInfo{unsafe.Pointer(info), typ, *(*interface{})(info.data), ReturnValue{}, (*Context)(context)})
 	case C.OTP_Deleter:
 		(*(*NamedPropertyDeleterCallback)(info.callback))(
-			gname, PropertyCallbackInfo{unsafe.Pointer(info), typ, *(*interface{})(info.data), ReturnValue{}})
+			gname, PropertyCallbackInfo{unsafe.Pointer(info), typ, *(*interface{})(info.data), ReturnValue{}, (*Context)(context)})
 	case C.OTP_Query:
 		(*(*NamedPropertyQueryCallback)(info.callback))(
-			gname, PropertyCallbackInfo{unsafe.Pointer(info), typ, *(*interface{})(info.data), ReturnValue{}})
+			gname, PropertyCallbackInfo{unsafe.Pointer(info), typ, *(*interface{})(info.data), ReturnValue{}, (*Context)(context)})
 	case C.OTP_Enumerator:
 		(*(*NamedPropertyEnumeratorCallback)(info.callback))(
-			PropertyCallbackInfo{unsafe.Pointer(info), typ, *(*interface{})(info.data), ReturnValue{}})
+			PropertyCallbackInfo{unsafe.Pointer(info), typ, *(*interface{})(info.data), ReturnValue{}, (*Context)(context)})
 	}
 }
 
 //export go_indexed_property_callback
-func go_indexed_property_callback(typ C.PropertyDataEnum, info *C.V8_PropertyCallbackInfo) {
+func go_indexed_property_callback(typ C.PropertyDataEnum, info *C.V8_PropertyCallbackInfo, context unsafe.Pointer) {
 	switch typ {
 	case C.OTP_Getter:
 		(*(*IndexedPropertyGetterCallback)(info.callback))(
-			uint32(info.index), PropertyCallbackInfo{unsafe.Pointer(info), typ, *(*interface{})(info.data), ReturnValue{}})
+			uint32(info.index), PropertyCallbackInfo{unsafe.Pointer(info), typ, *(*interface{})(info.data), ReturnValue{}, (*Context)(context)})
 	case C.OTP_Setter:
 		(*(*IndexedPropertySetterCallback)(info.callback))(
 			uint32(info.index),
 			newValue(info.setValue),
-			PropertyCallbackInfo{unsafe.Pointer(info), typ, *(*interface{})(info.data), ReturnValue{}})
+			PropertyCallbackInfo{unsafe.Pointer(info), typ, *(*interface{})(info.data), ReturnValue{}, (*Context)(context)})
 	case C.OTP_Deleter:
 		(*(*IndexedPropertyDeleterCallback)(info.callback))(
-			uint32(info.index), PropertyCallbackInfo{unsafe.Pointer(info), typ, *(*interface{})(info.data), ReturnValue{}})
+			uint32(info.index), PropertyCallbackInfo{unsafe.Pointer(info), typ, *(*interface{})(info.data), ReturnValue{}, (*Context)(context)})
 	case C.OTP_Query:
 		(*(*IndexedPropertyQueryCallback)(info.callback))(
-			uint32(info.index), PropertyCallbackInfo{unsafe.Pointer(info), typ, *(*interface{})(info.data), ReturnValue{}})
+			uint32(info.index), PropertyCallbackInfo{unsafe.Pointer(info), typ, *(*interface{})(info.data), ReturnValue{}, (*Context)(context)})
 	case C.OTP_Enumerator:
 		(*(*IndexedPropertyEnumeratorCallback)(info.callback))(
-			PropertyCallbackInfo{unsafe.Pointer(info), typ, *(*interface{})(info.data), ReturnValue{}})
+			PropertyCallbackInfo{unsafe.Pointer(info), typ, *(*interface{})(info.data), ReturnValue{}, (*Context)(context)})
 	}
 }
 
@@ -501,9 +516,9 @@ func (ft *FunctionTemplate) InstanceTemplate() *ObjectTemplate {
 }
 
 //export go_function_callback
-func go_function_callback(info, callback unsafe.Pointer) {
+func go_function_callback(info, callback, context unsafe.Pointer) {
 	callbackFunc := *(*func(FunctionCallbackInfo))(callback)
-	callbackFunc(FunctionCallbackInfo{info, ReturnValue{}})
+	callbackFunc(FunctionCallbackInfo{info, ReturnValue{}, (*Context)(context)})
 }
 
 func (f *Function) Call(args ...*Value) *Value {
@@ -565,6 +580,11 @@ func (rv ReturnValue) SetUndefined() {
 type FunctionCallbackInfo struct {
 	self        unsafe.Pointer
 	returnValue ReturnValue
+	context     *Context
+}
+
+func (fc FunctionCallbackInfo) CurrentScope() ContextScope {
+	return ContextScope{fc.context}
 }
 
 func (fc FunctionCallbackInfo) Get(i int) *Value {

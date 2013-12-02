@@ -45,6 +45,12 @@ using namespace v8;
 	ISOLATE_SCOPE(the_template->GetIsolate()); \
 	Local<FunctionTemplate> local_template = Local<FunctionTemplate>::New(isolate, the_template->self) \
 
+#define FUNCTION_TEMPLATE_HANDLE_SCOPE(tpl) \
+	V8_FunctionTemplate* the_template = static_cast<V8_FunctionTemplate*>(tpl); \
+	ISOLATE_SCOPE(the_template->GetIsolate()); \
+	HandleScope scope(isolate); \
+	Local<FunctionTemplate> local_template = Local<FunctionTemplate>::New(isolate, the_template->self) \
+
 class V8_Context {
 public:
 	V8_Context(Isolate* isolate, Handle<Context> context) {
@@ -244,14 +250,20 @@ void V8_DisposeContext(void* context) {
 	delete static_cast<V8_Context*>(context);
 }
 
-extern void context_scope_callback(void* context_ptr, void* callback);
+typedef struct scope_data {
+	void* context;
+	void* context_ptr;
+} scope_data;
 
 void V8_Context_Scope(void* context, void* context_ptr, void* callback) {
 	V8_Context* ctx = static_cast<V8_Context*>(context);
 	ISOLATE_SCOPE(ctx->GetIsolate());
 
 	void* prev_context = isolate->GetData();
-	isolate->SetData(context);
+	scope_data data;
+	data.context = context;
+	data.context_ptr = context_ptr;
+	isolate->SetData(&data);
 
 	// Make nested context scropt use the outermost HandleScope
 	if (prev_context == NULL) {
@@ -271,7 +283,14 @@ V8_Context* V8_Current_Context(Isolate* isolate) {
 	void* data = isolate->GetData();
 	if (data == NULL)
 		v8_panic((char*)"Please call this API in a context scope");
-	return static_cast<V8_Context*>(isolate->GetData());
+	return static_cast<V8_Context*>(static_cast<scope_data*>(isolate->GetData())->context);
+}
+
+void* V8_Current_ContextPtr(Isolate* isolate) {
+	void* data = isolate->GetData();
+	if (data == NULL)
+		v8_panic((char*)"Please call this API in a context scope");
+	return static_cast<scope_data*>(isolate->GetData())->context_ptr;
 }
 
 void* V8_Context_Global(void* context) {
@@ -279,8 +298,6 @@ void* V8_Context_Global(void* context) {
 	Local<Context> local_context = Local<Context>::New(isolate, the_context->self);
 	return new_V8_Value(the_context, local_context->Global()); 
 }
-
-extern void try_catch_callback(void* callback);
 
 // Extracts a C string from a V8 Utf8Value.
 const char* ToCString(const v8::String::Utf8Value& value) {
@@ -606,17 +623,15 @@ void* V8_False(void* engine) {
 	return new_V8_Value(the_engine, False(isolate));
 }
 
-void* V8_NewNumber(void* engine, double val) {
-	V8_Context* the_engine = static_cast<V8_Context*>(engine);
-	ISOLATE_SCOPE(the_engine->GetIsolate());
-	V8_Context* the_context = V8_Current_Context(isolate);
+void* V8_NewNumber(void* context, double val) {
+	CONTEXT_SCOPE(context);
+
 	return new_V8_Value(the_context, Number::New(isolate, val));
 }
 
-void* V8_NewString(void* engine, const char* val, int val_length) {
-	V8_Context* the_engine = static_cast<V8_Context*>(engine);
-	ISOLATE_SCOPE(the_engine->GetIsolate());
-	V8_Context* the_context = V8_Current_Context(isolate);
+void* V8_NewString(void* context, const char* val, int val_length) {
+	CONTEXT_SCOPE(context);
+
 	return new_V8_Value(the_context,
 		String::NewFromOneByte(isolate, (uint8_t*)val, String::kNormalString, val_length)
 	);
@@ -625,10 +640,9 @@ void* V8_NewString(void* engine, const char* val, int val_length) {
 /*
 object
 */
-void* V8_NewObject(void* engine) {
-	V8_Context* the_engine = static_cast<V8_Context*>(engine);
-	ISOLATE_SCOPE(the_engine->GetIsolate());
-	V8_Context* the_context = V8_Current_Context(isolate);
+void* V8_NewObject(void* context) {
+	CONTEXT_SCOPE(context);
+
 	return new_V8_Value(the_context, Object::New());
 }
 
@@ -776,10 +790,9 @@ void V8_AccessorGetterCallback(Local<String> property, const PropertyCallbackInf
 	callback_info.key = (const char*)Local<External>::Cast(callback_data->Get(OTA_KeyString))->Value();
 	callback_info.key_length = Local<Integer>::Cast(callback_data->Get(OTA_KeyLength))->Value();
 
-	go_accessor_callback(
-		OTA_Getter,
-		&callback_info
-	);
+	void* context_ptr = V8_Current_ContextPtr(isolate);
+
+	go_accessor_callback(OTA_Getter, &callback_info, context_ptr);
 
 	if (callback_info.returnValue != NULL)
 		delete static_cast<V8_ReturnValue*>(callback_info.returnValue);
@@ -801,10 +814,9 @@ void V8_AccessorSetterCallback(Local<String> property, Local<Value> value, const
 	callback_info.key = (const char*)Local<External>::Cast(callback_data->Get(OTA_KeyString))->Value();
 	callback_info.key_length = Local<Integer>::Cast(callback_data->Get(OTA_KeyLength))->Value();
 
-	go_accessor_callback(
-		OTA_Setter,
-		&callback_info
-	);
+	void* context_ptr = V8_Current_ContextPtr(isolate);
+
+	go_accessor_callback(OTA_Setter, &callback_info, context_ptr);
 
 	if (callback_info.returnValue != NULL)
 		delete static_cast<V8_ReturnValue*>(callback_info.returnValue);
@@ -961,10 +973,8 @@ void* V8_AccessorCallbackInfo_ReturnValue(void *info, AccessorDataEnum typ) {
 /*
 array
 */
-void* V8_NewArray(void* engine, int length) {
-	V8_Context* the_engine = static_cast<V8_Context*>(engine);
-	ISOLATE_SCOPE(the_engine->GetIsolate());
-	V8_Context* the_context = V8_Current_Context(isolate);
+void* V8_NewArray(void* context, int length) {
+	CONTEXT_SCOPE(context);
 	return new_V8_Value(the_context, Array::New(length));
 }
 
@@ -976,10 +986,9 @@ int V8_Array_Length(void* value) {
 /*
 regexp
 */
-void* V8_NewRegExp(void* engine, const char* pattern, int length, int flags) {
-	V8_Context* the_engine = static_cast<V8_Context*>(engine);
-	ISOLATE_SCOPE(the_engine->GetIsolate());
-	V8_Context* the_context = V8_Current_Context(isolate);
+void* V8_NewRegExp(void* context, const char* pattern, int length, int flags) {
+	CONTEXT_SCOPE(context);
+
 	return new_V8_Value(the_context, RegExp::New(
 		String::NewFromOneByte(isolate, (uint8_t*)pattern, String::kNormalString, length),
 		(RegExp::Flags)flags
@@ -1068,8 +1077,6 @@ typedef struct {
 	V8_ReturnValue*                        returnValue;
 } V8_FunctionCallbackInfo;
 
-extern void go_function_callback(void* info, void* callback);
-
 void V8_FunctionCallback(const v8::FunctionCallbackInfo<Value>& info) {
 	v8::Isolate* isolate_ptr = info.GetIsolate();
 	ISOLATE_SCOPE(isolate_ptr);
@@ -1083,7 +1090,9 @@ void V8_FunctionCallback(const v8::FunctionCallbackInfo<Value>& info) {
 
 	void* callback = Local<External>::Cast(callback_data->Get(1))->Value();
 
-	go_function_callback(&callback_info, callback);
+	void* context_ptr = V8_Current_ContextPtr(isolate);
+
+	go_function_callback(&callback_info, callback, context_ptr);
 
 	if (callback_info.returnValue != NULL)
 		delete callback_info.returnValue;
@@ -1220,24 +1229,28 @@ void V8_NamedPropertyGetterCallbackBase(
     callback_info.data = Local<External>::Cast(callback_data->Get(OTP_Data))->Value();
     callback_info.callback = Local<External>::Cast(callback_data->Get(typ))->Value();
     callback_info.key = NULL;
+
 	if (typ != OTP_Enumerator) {
 		uint8_t* key = (uint8_t*)malloc(property->Length() + 1);
 		property->WriteOneByte(key);
 		callback_info.key = (char*)key;
 	}
+
 	if (typ == OTP_Setter) {
 		callback_info.setValue = new_V8_Value(
 			V8_Current_Context(isolate_ptr),
 			value
 		);
 	}
-	go_named_property_callback(
-		typ,
-		&callback_info
-	);
+
+	void* context_ptr = V8_Current_ContextPtr(isolate);
+
+	go_named_property_callback(typ, &callback_info, context_ptr);
+
 	if (typ != OTP_Enumerator) {
 		free(callback_info.key);
 	}
+
 	if (callback_info.returnValue != NULL)
 		delete static_cast<V8_ReturnValue*>(callback_info.returnValue);
 }
@@ -1304,6 +1317,7 @@ void V8_IndexedPropertyGetterCallbackBase(
 	Local<Value> callback_data_val
 ) {
     ISOLATE_SCOPE(isolate_ptr);
+
     Local<Array> callback_data = Local<Array>::Cast(callback_data_val);
     V8_PropertyCallbackInfo callback_info;
     callback_info.engine = Local<External>::Cast(callback_data->Get(OTP_Context))->Value();
@@ -1312,16 +1326,18 @@ void V8_IndexedPropertyGetterCallbackBase(
     callback_info.data = Local<External>::Cast(callback_data->Get(OTP_Data))->Value();
     callback_info.callback = Local<External>::Cast(callback_data->Get(typ))->Value();
 	callback_info.index = index;
+
 	if (typ == OTP_Setter) {
 		callback_info.setValue = new_V8_Value(
 			V8_Current_Context(isolate_ptr),
 			value
 		);
 	}
-	go_indexed_property_callback(
-		typ,
-		&callback_info
-	);
+
+	void* context_ptr = V8_Current_ContextPtr(isolate);
+
+	go_indexed_property_callback(typ, &callback_info, context_ptr);
+
 	if (callback_info.returnValue != NULL)
 		delete static_cast<V8_ReturnValue*>(callback_info.returnValue);
 }
@@ -1417,16 +1433,15 @@ void* V8_FunctionTemplate_GetFunction(void* tpl) {
 }
 
 void V8_FunctionTemplate_SetClassName(void* tpl, const char* name, int name_length) {
-	FUNCTION_TEMPLATE_SCOPE(tpl);
+	FUNCTION_TEMPLATE_HANDLE_SCOPE(tpl);
 	return local_template->SetClassName(
 		String::NewFromOneByte(isolate, (uint8_t*)name, String::kNormalString, name_length)
 	);
 }
 
 void* V8_FunctionTemplate_InstanceTemplate(void* tpl) {
-	FUNCTION_TEMPLATE_SCOPE(tpl);
-	V8_Context* the_context = V8_Current_Context(isolate);
-	return new V8_ObjectTemplate(the_context, local_template->InstanceTemplate());
+	FUNCTION_TEMPLATE_HANDLE_SCOPE(tpl);
+	return new V8_ObjectTemplate(the_template->engine, local_template->InstanceTemplate());
 }
 
 const char* V8_GetVersion() {
