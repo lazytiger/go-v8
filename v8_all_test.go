@@ -58,6 +58,23 @@ func Test_GetVersion(t *testing.T) {
 	t.Log(GetVersion())
 }
 
+func Test_Allocator(t *testing.T) {
+	allocator := NewArrayBufferAllocator()
+	SetArrayBufferAllocator(allocator, nil, nil)
+	script := engine.Compile([]byte(`var data = new ArrayBuffer(10); data[0]='a'; data[0];`), nil, nil)
+	engine.NewContext(nil).Scope(func(cs ContextScope) {
+		exception := cs.TryCatch(true, func() {
+			value := script.Run()
+			if value.ToString() != "a" {
+				t.Fatal("value failed")
+			}
+		})
+		if exception != "" {
+			t.Fatalf("exception found:%s", exception)
+		}
+	})
+}
+
 func Test_HelloWorld(t *testing.T) {
 	engine.NewContext(nil).Scope(func(cs ContextScope) {
 		if cs.Eval("'Hello ' + 'World!'").ToString() != "Hello World!" {
