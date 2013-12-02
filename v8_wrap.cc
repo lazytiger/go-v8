@@ -267,16 +267,11 @@ void V8_Context_Scope(void* context, void* context_ptr, void* callback) {
 	isolate->SetData(prev_context);
 }
 
-void* V8_Current_Context(void* engine) {
-	ISOLATE_SCOPE(static_cast<Isolate*>(engine));
-	return isolate->GetData();
-}
-
-V8_Context* v8_Current_Context(Isolate* isolate) {
+V8_Context* V8_Current_Context(Isolate* isolate) {
 	void* data = isolate->GetData();
 	if (data == NULL)
 		v8_panic((char*)"Please call this API in a context scope");
-	return static_cast<V8_Context*>(V8_Current_Context(isolate));
+	return static_cast<V8_Context*>(isolate->GetData());
 }
 
 void* V8_Context_Global(void* context) {
@@ -392,7 +387,7 @@ void V8_DisposeScript(void* script) {
 void* V8_Script_Run(void* script) {
 	V8_Script* the_script = static_cast<V8_Script*>(script);
 	ISOLATE_SCOPE(the_script->engine->GetIsolate());
-	V8_Context* the_context = v8_Current_Context(isolate);
+	V8_Context* the_context = V8_Current_Context(isolate);
 	Local<Script> local_script = Local<Script>::New(isolate, the_script->self);
 
 	return new_V8_Value(the_context, local_script->Run());
@@ -611,15 +606,17 @@ void* V8_False(void* engine) {
 	return new_V8_Value(the_engine, False(isolate));
 }
 
-void* V8_NewNumber(void* context, double val) {
-	CONTEXT_SCOPE(context);
-
+void* V8_NewNumber(void* engine, double val) {
+	V8_Context* the_engine = static_cast<V8_Context*>(engine);
+	ISOLATE_SCOPE(the_engine->GetIsolate());
+	V8_Context* the_context = V8_Current_Context(isolate);
 	return new_V8_Value(the_context, Number::New(isolate, val));
 }
 
-void* V8_NewString(void* context, const char* val, int val_length) {
-	CONTEXT_SCOPE(context);
-
+void* V8_NewString(void* engine, const char* val, int val_length) {
+	V8_Context* the_engine = static_cast<V8_Context*>(engine);
+	ISOLATE_SCOPE(the_engine->GetIsolate());
+	V8_Context* the_context = V8_Current_Context(isolate);
 	return new_V8_Value(the_context,
 		String::NewFromOneByte(isolate, (uint8_t*)val, String::kNormalString, val_length)
 	);
@@ -628,9 +625,10 @@ void* V8_NewString(void* context, const char* val, int val_length) {
 /*
 object
 */
-void* V8_NewObject(void* context) {
-	CONTEXT_SCOPE(context);
-
+void* V8_NewObject(void* engine) {
+	V8_Context* the_engine = static_cast<V8_Context*>(engine);
+	ISOLATE_SCOPE(the_engine->GetIsolate());
+	V8_Context* the_context = V8_Current_Context(isolate);
 	return new_V8_Value(the_context, Object::New());
 }
 
@@ -963,8 +961,10 @@ void* V8_AccessorCallbackInfo_ReturnValue(void *info, AccessorDataEnum typ) {
 /*
 array
 */
-void* V8_NewArray(void* context, int length) {
-	CONTEXT_SCOPE(context);
+void* V8_NewArray(void* engine, int length) {
+	V8_Context* the_engine = static_cast<V8_Context*>(engine);
+	ISOLATE_SCOPE(the_engine->GetIsolate());
+	V8_Context* the_context = V8_Current_Context(isolate);
 	return new_V8_Value(the_context, Array::New(length));
 }
 
@@ -976,9 +976,10 @@ int V8_Array_Length(void* value) {
 /*
 regexp
 */
-void* V8_NewRegExp(void* context, const char* pattern, int length, int flags) {
-	CONTEXT_SCOPE(context);
-
+void* V8_NewRegExp(void* engine, const char* pattern, int length, int flags) {
+	V8_Context* the_engine = static_cast<V8_Context*>(engine);
+	ISOLATE_SCOPE(the_engine->GetIsolate());
+	V8_Context* the_context = V8_Current_Context(isolate);
 	return new_V8_Value(the_context, RegExp::New(
 		String::NewFromOneByte(isolate, (uint8_t*)pattern, String::kNormalString, length),
 		(RegExp::Flags)flags
@@ -1176,7 +1177,7 @@ void V8_ObjectTemplate_SetProperty(void* tpl, const char* key, int key_length, v
 
 void* V8_ObjectTemplate_NewObject(void* tpl) {
 	OBJECT_TEMPLATE_SCOPE(tpl);
-	V8_Context* the_context = v8_Current_Context(isolate);
+	V8_Context* the_context = V8_Current_Context(isolate);
 	return new_V8_Value(the_context, local_template->NewInstance());
 }
 
@@ -1226,7 +1227,7 @@ void V8_NamedPropertyGetterCallbackBase(
 	}
 	if (typ == OTP_Setter) {
 		callback_info.setValue = new_V8_Value(
-			v8_Current_Context(isolate_ptr),
+			V8_Current_Context(isolate_ptr),
 			value
 		);
 	}
@@ -1313,7 +1314,7 @@ void V8_IndexedPropertyGetterCallbackBase(
 	callback_info.index = index;
 	if (typ == OTP_Setter) {
 		callback_info.setValue = new_V8_Value(
-			v8_Current_Context(isolate_ptr),
+			V8_Current_Context(isolate_ptr),
 			value
 		);
 	}
@@ -1411,7 +1412,7 @@ void V8_DisposeFunctionTemplate(void* tpl) {
 
 void* V8_FunctionTemplate_GetFunction(void* tpl) {
 	FUNCTION_TEMPLATE_SCOPE(tpl);
-	V8_Context* the_context = v8_Current_Context(isolate);
+	V8_Context* the_context = V8_Current_Context(isolate);
 	return new_V8_Value(the_context, local_template->GetFunction());
 }
 
@@ -1424,7 +1425,7 @@ void V8_FunctionTemplate_SetClassName(void* tpl, const char* name, int name_leng
 
 void* V8_FunctionTemplate_InstanceTemplate(void* tpl) {
 	FUNCTION_TEMPLATE_SCOPE(tpl);
-	V8_Context* the_context = v8_Current_Context(isolate);
+	V8_Context* the_context = V8_Current_Context(isolate);
 	return new V8_ObjectTemplate(the_context, local_template->InstanceTemplate());
 }
 

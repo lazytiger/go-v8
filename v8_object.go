@@ -23,8 +23,8 @@ type Object struct {
 	*Value
 }
 
-func (cs *ContextScope) NewObject() *Value {
-	return newValue(C.V8_NewObject(cs.context.self))
+func (e *Engine) NewObject() *Value {
+	return newValue(C.V8_NewObject(e.self))
 }
 
 func (o *Object) SetProperty(key string, value *Value, attribs PropertyAttribute) bool {
@@ -147,10 +147,10 @@ type Array struct {
 	*Object
 }
 
-func (cs ContextScope) NewArray(length int) *Array {
+func (e *Engine) NewArray(length int) *Value {
 	return newValue(C.V8_NewArray(
-		cs.context.self, C.int(length),
-	)).ToArray()
+		e.self, C.int(length),
+	))
 }
 
 func (a *Array) Length() int {
@@ -186,11 +186,11 @@ type RegExp struct {
 //
 // is equivalent to evaluating "/foo/gm".
 //
-func (cs ContextScope) NewRegExp(pattern string, flags RegExpFlags) *Value {
+func (e *Engine) NewRegExp(pattern string, flags RegExpFlags) *Value {
 	patternPtr := unsafe.Pointer((*reflect.StringHeader)(unsafe.Pointer(&pattern)).Data)
 
 	return newValue(C.V8_NewRegExp(
-		cs.context.self, (*C.char)(patternPtr), C.int(len(pattern)), C.int(flags),
+		e.self, (*C.char)(patternPtr), C.int(len(pattern)), C.int(flags),
 	))
 }
 

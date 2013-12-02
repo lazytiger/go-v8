@@ -64,29 +64,29 @@ func (e *Engine) False() *Value {
 	return e._false
 }
 
-func (cs ContextScope) NewBoolean(value bool) *Value {
+func (e *Engine) NewBoolean(value bool) *Value {
 	if value {
-		return cs.context.engine.True()
+		return e.True()
 	}
-	return cs.context.engine.False()
+	return e.False()
 }
 
-func (cs ContextScope) NewNumber(value float64) *Value {
+func (e *Engine) NewNumber(value float64) *Value {
 	return newValue(C.V8_NewNumber(
-		cs.context.self, C.double(value),
+		e.self, C.double(value),
 	))
 }
 
-func (cs ContextScope) NewInteger(value int64) *Value {
+func (e *Engine) NewInteger(value int64) *Value {
 	return newValue(C.V8_NewNumber(
-		cs.context.self, C.double(value),
+		e.self, C.double(value),
 	))
 }
 
-func (cs ContextScope) NewString(value string) *Value {
+func (e *Engine) NewString(value string) *Value {
 	valPtr := unsafe.Pointer((*reflect.StringHeader)(unsafe.Pointer(&value)).Data)
 	return newValue(C.V8_NewString(
-		cs.context.self, (*C.char)(valPtr), C.int(len(value)),
+		e.self, (*C.char)(valPtr), C.int(len(value)),
 	))
 }
 
