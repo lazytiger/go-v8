@@ -139,8 +139,9 @@ The second is a ScriptOrigin, it stores script's file name or line number offset
 ```go
 name := "my_file.js"
 real := ReadFile(name)
-code := "function(_export){\n" + realcode + "\n}"
+code := "function(_export){\n" + real + "\n}"
 origin := engine.NewScriptOrigin(name, 1, 0)
+script := engine.Compile(code, origin, nil)
 ```
 
 The third is a ScriptData, it's pre-parsing data, as obtained by Engine.PreCompile(). If you want to compile a script many time, you can use ScriptData to speeds compilation. 
