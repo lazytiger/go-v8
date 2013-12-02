@@ -252,14 +252,20 @@ void V8_Context_Scope(void* context, void* context_ptr, void* callback) {
 	V8_Context* ctx = static_cast<V8_Context*>(context);
 	ISOLATE_SCOPE(ctx->GetIsolate());
 
-	HandleScope handle_scope(isolate);
-
-	Handle<Context> local_context = Local<Context>::New(isolate, ctx->self);
-	Context::Scope scope(local_context);
-
 	void* prev_context = isolate->GetData();
 	isolate->SetData(context);
-	context_scope_callback(context_ptr, callback);
+
+	// Make nested context scropt use the outermost HandleScope
+	if (prev_context == NULL) {
+		HandleScope handle_scope(isolate);
+
+		Context::Scope scope(Local<Context>::New(isolate, ctx->self));
+		context_scope_callback(context_ptr, callback);
+	} else {
+		Context::Scope scope(Local<Context>::New(isolate, ctx->self));
+		context_scope_callback(context_ptr, callback);
+	}
+
 	isolate->SetData(prev_context);
 }
 
