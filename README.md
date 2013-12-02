@@ -1,4 +1,4 @@
-go-v8
+Go-V8
 =====
 
 V8 JavaScript engine bindings for Go.
