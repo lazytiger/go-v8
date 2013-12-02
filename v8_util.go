@@ -124,6 +124,7 @@ type ArrayBufferAllocator struct {
 	self unsafe.Pointer
 }
 
+// Call this to get a new ArrayBufferAllocator 
 func NewArrayBufferAllocator() *ArrayBufferAllocator {
 	allocator := &ArrayBufferAllocator{}
 	runtime.SetFinalizer(allocator, func(allocator *ArrayBufferAllocator) {
@@ -138,6 +139,10 @@ func NewArrayBufferAllocator() *ArrayBufferAllocator {
 	return allocator
 }
 
+// Call SetArrayBufferAllocator first if you want use any of
+// ArrayBuffer, ArrayBufferView, Int8Array...
+// Please be sure to call this function once and keep allocator
+// Please set ac and fc to nil if you don't want a custom one
 func SetArrayBufferAllocator(
 	allocator *ArrayBufferAllocator,
 	ac ArrayBufferAllocateCallback,
