@@ -84,9 +84,7 @@ type propertyInfo struct {
 	attribs PropertyAttribute
 }
 
-func (e *Engine) NewObjectTemplate() *ObjectTemplate {
-	self := C.V8_NewObjectTemplate(e.self)
-
+func newObjectTemplate(e *Engine, self unsafe.Pointer) *ObjectTemplate {
 	if self == nil {
 		return nil
 	}
@@ -103,6 +101,12 @@ func (e *Engine) NewObjectTemplate() *ObjectTemplate {
 	e.objectTemplates[ot.id] = ot
 
 	return ot
+}
+
+func (e *Engine) NewObjectTemplate() *ObjectTemplate {
+	self := C.V8_NewObjectTemplate(e.self)
+
+	return newObjectTemplate(e, self)
 }
 
 func (ot *ObjectTemplate) Dispose() {
@@ -464,6 +468,30 @@ func (ft *FunctionTemplate) NewFunction() *Value {
 	}
 
 	return newValue(C.V8_FunctionTemplate_GetFunction(ft.self))
+}
+
+func (ft *FunctionTemplate) SetClassName(name string) {
+	ft.Lock()
+	defer ft.Unlock()
+
+	if ft.engine == nil {
+		panic("engine can't be nil")
+	}
+
+	namePtr := unsafe.Pointer((*reflect.StringHeader)(unsafe.Pointer(&name)).Data)
+	C.V8_FunctionTemplate_SetClassName(ft.self, (*C.char)(namePtr))
+}
+
+func (ft *FunctionTemplate) InstanceTemplate() *ObjectTemplate {
+	ft.Lock()
+	defer ft.Unlock()
+
+	if ft.engine == nil {
+		panic("engine can't be nil")
+	}
+	
+	self := C.V8_FunctionTemplate_InstanceTemplate(ft.self)
+	return newObjectTemplate(ft.engine, self)
 }
 
 //export go_function_callback
