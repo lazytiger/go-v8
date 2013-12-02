@@ -24,11 +24,11 @@ Install
 
 For 'curl' user. please run this shell command:
 
-> curl -O https://raw.github.com/realint/go-v8/master/get.sh && chmod +x get.sh && ./get.sh go-v8
+> curl -O https://raw.github.com/idada/go-v8/master/get.sh && chmod +x get.sh && ./get.sh go-v8
 
 For 'wget' user. Please run this shell command:
 
-> wget -O get.sh https://raw.github.com/realint/go-v8/master/get.sh && chmod +x get.sh && ./get.sh go-v8
+> wget -O get.sh https://raw.github.com/idada/go-v8/master/get.sh && chmod +x get.sh && ./get.sh go-v8
 
 Note: require Go version 1.2 and Git.
 
@@ -40,7 +40,7 @@ This 'Hello World' program shows how to use go-v8 to compile and run JavaScript 
 ```go
 package main
 
-import "github.com/realint/go-v8"
+import "github.com/idada/go-v8"
 
 func main() {
 	engine := v8.NewEngine()
