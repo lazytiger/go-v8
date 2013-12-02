@@ -75,6 +75,18 @@ func Test_Allocator(t *testing.T) {
 	})
 }
 
+func Test_MessageListener(t *testing.T) {
+	engine.NewContext(nil).Scope(func(cs ContextScope) {
+		cs.AddMessageListener(true, func(message string, data interface{}){
+			println("golang", message)
+		}, nil)
+		script := engine.Compile([]byte(`var test[ = ;`), nil, nil)
+		if script != nil {
+			script.Run()
+		}
+	})
+}
+
 func Test_HelloWorld(t *testing.T) {
 	engine.NewContext(nil).Scope(func(cs ContextScope) {
 		if cs.Eval("'Hello ' + 'World!'").ToString() != "Hello World!" {
