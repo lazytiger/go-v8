@@ -180,13 +180,22 @@ func (ot *ObjectTemplate) SetAccessor(
 
 	ot.accessors[key] = info
 
+	var getterPointer, setterPointer unsafe.Pointer
+	if info.getter != nil {
+		getterPointer = unsafe.Pointer(&info.getter)
+	}
+
+	if info.setter != nil {
+		setterPointer = unsafe.Pointer(&info.setter)
+	}
+
 	keyPtr := unsafe.Pointer((*reflect.StringHeader)(unsafe.Pointer(&info.key)).Data)
 
 	C.V8_ObjectTemplate_SetAccessor(
 		ot.self,
 		(*C.char)(keyPtr), C.int(len(info.key)),
-		unsafe.Pointer(&(info.getter)),
-		unsafe.Pointer(&(info.setter)),
+		getterPointer,
+		setterPointer,
 		unsafe.Pointer(&(info.data)),
 		C.int(info.attribs),
 	)
