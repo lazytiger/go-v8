@@ -9,7 +9,7 @@ Features
 * Thread safe
 * Thorough and careful testing
 * Boolean, Number, String, Object, Array, Regexp, Function
-* Compile JavaScript and run
+* Compile and run JavaScript
 * Save and load pre-compiled script data
 * Create JavaScript context with global object template
 * Operate JavaScript object properties and array elements in Go
