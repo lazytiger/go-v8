@@ -13,7 +13,7 @@ cd $install_dir
 export GOPATH=`pwd`
 
 mkdir -p bin pkg src/github.com/idada/go-v8
-cd src/github.com/realint/go-v8
+cd src/github.com/idada/go-v8
 
 git init
 git remote add origin https://github.com/idada/go-v8
