@@ -59,8 +59,7 @@ func Test_GetVersion(t *testing.T) {
 }
 
 func Test_Allocator(t *testing.T) {
-	allocator := NewArrayBufferAllocator()
-	SetArrayBufferAllocator(allocator, nil, nil)
+	SetArrayBufferAllocator(nil, nil)
 	script := engine.Compile([]byte(`var data = new ArrayBuffer(10); data[0]='a'; data[0];`), nil, nil)
 	engine.NewContext(nil).Scope(func(cs ContextScope) {
 		exception := cs.TryCatch(true, func() {
@@ -81,6 +80,12 @@ func Test_MessageListener(t *testing.T) {
 			println("golang", message)
 		}, nil)
 		script := engine.Compile([]byte(`var test[ = ;`), nil, nil)
+		if script != nil {
+			script.Run()
+		}
+
+		cs.AddMessageListener(true, nil, nil)
+		script = engine.Compile([]byte(`var test[ = ;`), nil, nil)
 		if script != nil {
 			script.Run()
 		}
