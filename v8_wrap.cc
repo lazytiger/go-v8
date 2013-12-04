@@ -301,7 +301,7 @@ void* V8_Context_Global(void* context) {
 }
 
 // Extracts a C string from a V8 Utf8Value.
-const char* ToCString(const v8::String::Utf8Value& value) {
+const char* ToCString(const String::Utf8Value& value) {
   return *value ? *value : "<string conversion failed>";
 }
 
@@ -314,40 +314,26 @@ void V8_Context_ThrowException(void* context, const char* err, int err_length) {
 	);
 }
 
-char* V8_Context_TryCatch(void* context, void* callback, int simple) {
-	V8_Context* ctx = static_cast<V8_Context*>(context);
-	ISOLATE_SCOPE(ctx->GetIsolate());
-
-	v8::TryCatch try_catch;
-
-	try_catch_callback(callback);
-
-	if (!try_catch.HasCaught()) {
-		return NULL;
-	}
-
-	v8::String::Utf8Value exception(try_catch.Exception());
-	const char* exception_string = ToCString(exception);
-	v8::Handle<v8::Message> message = try_catch.Message();
-
+char* V8_Message_ToString(Handle<Message>& message, Handle<Value>& exception, bool simple) {
+	String::Utf8Value exception_string(exception);
 	if (message.IsEmpty() || simple) {
 		// V8 didn't provide any extra information about this error; just
 		// print the exception.
-		char *cstr = (char*)malloc(exception.length() + 1);
-		std::strcpy(cstr, exception_string);
+		char *cstr = (char*)malloc(exception_string.length() + 1);
+		std::strcpy(cstr, *exception_string);
 		return cstr;
 	}
 
 	std::stringstream report;
 
 	// Print (filename):(line number): (message).
-	v8::String::Utf8Value filename(message->GetScriptResourceName());
+	String::Utf8Value filename(message->GetScriptResourceName());
 	const char* filename_string = ToCString(filename);
 	int linenum = message->GetLineNumber();
-	report << filename_string << ":" << linenum << ": " << exception_string << std::endl;
+	report << filename_string << ":" << linenum << ":" << *exception_string << std::endl;
 
 	// Print line of source code.
-	v8::String::Utf8Value sourceline(message->GetSourceLine());
+	String::Utf8Value sourceline(message->GetSourceLine());
 	const char* sourceline_string = ToCString(sourceline);
 	report << sourceline_string << std::endl;
 
@@ -364,7 +350,72 @@ char* V8_Context_TryCatch(void* context, void* callback, int simple) {
 
 	report << std::endl;
 
-	v8::String::Utf8Value stack_trace(try_catch.StackTrace());
+	Handle<StackTrace> stackTrace = message->GetStackTrace();
+	for(int i = 0; i < stackTrace->GetFrameCount(); i++) {
+		Handle<StackFrame> frame = stackTrace->GetFrame(i);
+		String::Utf8Value script(frame->GetScriptNameOrSourceURL());
+		String::Utf8Value function(frame->GetFunctionName());
+		report << ToCString(script) << ":" << frame->GetLineNumber() << ToCString(function) << std::endl; 
+	}
+
+	std::string report_string = report.str();
+	char *cstr = (char*)malloc(report_string.length() +1);
+	std::strcpy(cstr, report_string.c_str());
+
+	return cstr;
+}
+
+char* V8_Context_TryCatch(void* context, void* callback, int simple) {
+	V8_Context* ctx = static_cast<V8_Context*>(context);
+	ISOLATE_SCOPE(ctx->GetIsolate());
+
+	TryCatch try_catch;
+
+	try_catch_callback(callback);
+
+	if (!try_catch.HasCaught()) {
+		return NULL;
+	}
+
+	String::Utf8Value exception(try_catch.Exception());
+	const char* exception_string = ToCString(exception);
+	Handle<Message> message = try_catch.Message();
+
+	if (message.IsEmpty() || simple) {
+		// V8 didn't provide any extra information about this error; just
+		// print the exception.
+		char *cstr = (char*)malloc(exception.length() + 1);
+		std::strcpy(cstr, exception_string);
+		return cstr;
+	}
+
+	std::stringstream report;
+
+	// Print (filename):(line number): (message).
+	String::Utf8Value filename(message->GetScriptResourceName());
+	const char* filename_string = ToCString(filename);
+	int linenum = message->GetLineNumber();
+	report << filename_string << ":" << linenum << ": " << exception_string << std::endl;
+
+	// Print line of source code.
+	String::Utf8Value sourceline(message->GetSourceLine());
+	const char* sourceline_string = ToCString(sourceline);
+	report << sourceline_string << std::endl;
+
+	// Print wavy underline (GetUnderline is deprecated).
+	int start = message->GetStartColumn();
+	for (int i = 0; i < start; i++) {
+		report << " ";
+	}
+
+	int end = message->GetEndColumn();
+	for (int i = start; i < end; i++) {
+		report << "^";
+	}
+
+	report << std::endl;
+
+	String::Utf8Value stack_trace(try_catch.StackTrace());
 	if (stack_trace.length() > 0) {
 		const char* stack_trace_string = ToCString(stack_trace);
 		report << stack_trace_string << std::endl;
@@ -653,7 +704,7 @@ int V8_Object_SetProperty(void* value, const char* key, int key_length, void* pr
 	return Local<Object>::Cast(local_value)->Set(
 		String::NewFromOneByte(isolate, (uint8_t*)key, String::kNormalString, key_length),
 		Local<Value>::New(isolate, static_cast<V8_Value*>(prop_value)->self),
-		(v8::PropertyAttribute)attribs
+		(PropertyAttribute)attribs
 	);
 }
 
@@ -698,7 +749,7 @@ int V8_Object_ForceSetProperty(void* value, const char* key, int key_length, voi
 	return Local<Object>::Cast(local_value)->ForceSet(
 		String::NewFromOneByte(isolate, (uint8_t*)key, String::kNormalString, key_length),
 		Local<Value>::New(isolate, static_cast<V8_Value*>(prop_value)->self),
-		(v8::PropertyAttribute)attribs
+		(PropertyAttribute)attribs
 	);
 }
 
@@ -777,7 +828,7 @@ int V8_Object_IsCallable(void* value) {
 }
 
 void V8_AccessorGetterCallback(Local<String> property, const PropertyCallbackInfo<Value>& info) {
-	v8::Isolate* isolate_ptr = info.GetIsolate();
+	Isolate* isolate_ptr = info.GetIsolate();
 	ISOLATE_SCOPE(isolate_ptr);
 
 	Local<Array> callback_data = Local<Array>::Cast(info.Data());
@@ -800,7 +851,7 @@ void V8_AccessorGetterCallback(Local<String> property, const PropertyCallbackInf
 }
 
 void V8_AccessorSetterCallback(Local<String> property, Local<Value> value, const PropertyCallbackInfo<void>& info) {
-	v8::Isolate* isolate_ptr = info.GetIsolate();
+	Isolate* isolate_ptr = info.GetIsolate();
 	ISOLATE_SCOPE(isolate_ptr);
 
 	Local<Array> callback_data = Local<Array>::Cast(info.Data());
@@ -1073,13 +1124,13 @@ void V8_ReturnValue_SetUndefined(void* rv) {
 function
 */
 typedef struct {
-	V8_Context*                            engine;
+	V8_Context*                        engine;
 	const v8::FunctionCallbackInfo<Value>* info;
-	V8_ReturnValue*                        returnValue;
+	V8_ReturnValue*                    returnValue;
 } V8_FunctionCallbackInfo;
 
 void V8_FunctionCallback(const v8::FunctionCallbackInfo<Value>& info) {
-	v8::Isolate* isolate_ptr = info.GetIsolate();
+	Isolate* isolate_ptr = info.GetIsolate();
 	ISOLATE_SCOPE(isolate_ptr);
 
 	Local<Array> callback_data = Local<Array>::Cast(info.Data());
@@ -1181,7 +1232,7 @@ void V8_ObjectTemplate_SetProperty(void* tpl, const char* key, int key_length, v
 	local_template->Set(
 		String::NewFromOneByte(isolate, (uint8_t*)key, String::kNormalString, key_length),
 		Local<Value>::New(isolate, static_cast<V8_Value*>(prop_value)->self),
-		(v8::PropertyAttribute)attribs
+		(PropertyAttribute)attribs
 	);
 }
 
@@ -1218,7 +1269,7 @@ void V8_NamedPropertyGetterCallbackBase(
 	Local<String> property, 
 	Local<Value> value, 
 	void* info_ptr,
-	v8::Isolate* isolate_ptr, 
+	Isolate* isolate_ptr, 
 	Local<Value> callback_data_val
 ) {
     ISOLATE_SCOPE(isolate_ptr);
@@ -1314,7 +1365,7 @@ void V8_IndexedPropertyGetterCallbackBase(
 	uint32_t index, 
 	Local<Value> value, 
 	void* info_ptr,
-	v8::Isolate* isolate_ptr, 
+	Isolate* isolate_ptr, 
 	Local<Value> callback_data_val
 ) {
     ISOLATE_SCOPE(isolate_ptr);
@@ -1511,6 +1562,26 @@ void V8_Dispose_Allocator(void* raw) {
 	if(allocator != NULL) {
 		delete allocator;
 	}
+}
+
+// FIXME: Memory leak or not?
+void V8_MessageCallback(Handle< Message > message, Handle< Value > error) {
+	Handle<Array> args = Handle<Array>::Cast(error);
+	void* callback = Handle<External>::Cast(args->Get(0))->Value();
+	void* data = Handle<External>::Cast(args->Get(1))->Value();
+	bool simple = args->Get(2)->BooleanValue();
+	Handle<Value> exception = message->Get();
+	const char* cmessage = V8_Message_ToString(message, exception, simple);	
+	go_message_callback((void*)cmessage, callback, data);
+}
+
+void V8_AddMessageListener(void* engine, void* callback, void* data, int simple) {
+	Handle<Array> args = Array::New(4);
+	args->Set(0, External::New(callback));
+	args->Set(1, External::New(data));
+	args->Set(2, Boolean::New(simple));
+	args->Set(3, External::New(engine));
+	V8::AddMessageListener(V8_MessageCallback, args);
 }
 
 } // extern "C"

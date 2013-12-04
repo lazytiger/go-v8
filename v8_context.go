@@ -84,6 +84,26 @@ func (cs ContextScope) TryCatch(simple bool, callback func()) string {
 	return report
 }
 
+type MessageCallback func(message string, data interface{})
+
+func (cs ContextScope) AddMessageListener(simple bool, callback MessageCallback, data interface{}) {
+	var goSimple int
+	if simple {
+		goSimple = 1
+	}
+	C.V8_AddMessageListener(cs.context.self,
+		unsafe.Pointer(&callback),
+		unsafe.Pointer(&data),
+		C.int(goSimple))
+}
+
+//export go_message_callback
+func go_message_callback(message, callback, data unsafe.Pointer) {
+	report := C.GoString((*C.char)(message))
+	C.free(message)
+	(*(*MessageCallback)(callback))(report, *(*interface{})(data))
+}
+
 func (cs ContextScope) Global() *Object {
 	return newValue(C.V8_Context_Global(cs.context.self)).ToObject()
 }

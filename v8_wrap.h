@@ -62,6 +62,8 @@ extern void* V8_SetArrayBufferAllocator(void* raw, void* ac, void* fc);
 
 extern void V8_Dispose_Allocator(void* raw);
 
+extern void V8_AddMessageListener(void* engine, void* callback, void* data, int simple);
+
 /*
 engine
 */
