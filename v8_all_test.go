@@ -507,11 +507,11 @@ func Test_Accessor(t *testing.T) {
 
 		template.SetAccessor(
 			"abc",
-			func(name string, info GetterCallbackInfo) {
+			func(name string, info AccessorCallbackInfo) {
 				data := info.Data().(*int32)
 				info.ReturnValue().SetInt32(*data)
 			},
-			func(name string, value *Value, info SetterCallbackInfo) {
+			func(name string, value *Value, info AccessorCallbackInfo) {
 				data := info.Data().(*int32)
 				*data = value.ToInt32()
 			},
@@ -598,7 +598,7 @@ func Test_NamedPropertyHandler(t *testing.T) {
 
 	global_template := engine.NewObjectTemplate()
 
-	global_template.SetAccessor("GetData", func(name string, info GetterCallbackInfo) {
+	global_template.SetAccessor("GetData", func(name string, info AccessorCallbackInfo) {
 		info.ReturnValue().Set(func_template.NewFunction())
 	}, nil, nil, PA_None)
 
@@ -667,7 +667,7 @@ func Test_IndexedPropertyHandler(t *testing.T) {
 
 	global_template := engine.NewObjectTemplate()
 
-	global_template.SetAccessor("GetData", func(name string, info GetterCallbackInfo) {
+	global_template.SetAccessor("GetData", func(name string, info AccessorCallbackInfo) {
 		info.ReturnValue().Set(func_template.NewFunction())
 	}, nil, nil, PA_None)
 
@@ -793,7 +793,7 @@ func Test_Context(t *testing.T) {
 	// Test Global Template
 	globalTemplate := engine.NewObjectTemplate()
 
-	globalTemplate.SetAccessor("log", func(name string, info GetterCallbackInfo) {
+	globalTemplate.SetAccessor("log", func(name string, info AccessorCallbackInfo) {
 		info.ReturnValue().Set(functionTemplate.NewFunction())
 	}, nil, nil, PA_None)
 
@@ -1292,11 +1292,11 @@ func Benchmark_Getter(b *testing.B) {
 
 		template.SetAccessor(
 			"abc",
-			func(name string, info GetterCallbackInfo) {
+			func(name string, info AccessorCallbackInfo) {
 				data := info.Data().(*int32)
 				info.ReturnValue().SetInt32(*data)
 			},
-			func(name string, value *Value, info SetterCallbackInfo) {
+			func(name string, value *Value, info AccessorCallbackInfo) {
 				data := info.Data().(*int32)
 				*data = value.ToInt32()
 			},
@@ -1328,11 +1328,11 @@ func Benchmark_Setter(b *testing.B) {
 
 		template.SetAccessor(
 			"abc",
-			func(name string, info GetterCallbackInfo) {
+			func(name string, info AccessorCallbackInfo) {
 				data := info.Data().(*int32)
 				info.ReturnValue().SetInt32(*data)
 			},
-			func(name string, value *Value, info SetterCallbackInfo) {
+			func(name string, value *Value, info AccessorCallbackInfo) {
 				data := info.Data().(*int32)
 				*data = value.ToInt32()
 			},
