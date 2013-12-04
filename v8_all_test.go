@@ -84,10 +84,24 @@ func Test_MessageListener(t *testing.T) {
 			script.Run()
 		}
 
-		cs.AddMessageListener(true, nil, nil)
-		script = engine.Compile([]byte(`var test[ = ;`), nil, nil)
+		SetCaptureStackTraceForUncaughtExceptions(true, 1)
+		cs.AddMessageListener(false, func(message string, data interface{}) {
+			println("golang2", message)
+		}, nil)
+		script = engine.Compile([]byte(`var test] = ;`), nil, nil)
 		if script != nil {
 			script.Run()
+		}
+
+		cs.AddMessageListener(true, nil, nil)
+		exception := cs.TryCatch(true, func() {
+			script = engine.Compile([]byte(`var test[] = ;`), nil, nil)
+			if script != nil {
+				script.Run()
+			}
+		})
+		if exception != "" {
+			println("exception:", exception)
 		}
 	})
 }

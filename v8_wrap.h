@@ -64,6 +64,8 @@ extern void V8_Dispose_Allocator(void* raw);
 
 extern void V8_AddMessageListener(void* callback, void* data, int simple);
 
+extern void V8_SetCaptureStackTraceForUncaughtExceptions(int capture, int frame_limit);
+
 /*
 engine
 */
