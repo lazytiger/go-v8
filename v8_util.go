@@ -125,7 +125,7 @@ type ArrayBufferAllocator struct {
 }
 
 // Call this to get a new ArrayBufferAllocator
-func NewArrayBufferAllocator() *ArrayBufferAllocator {
+func newArrayBufferAllocator() *ArrayBufferAllocator {
 	allocator := &ArrayBufferAllocator{}
 	runtime.SetFinalizer(allocator, func(allocator *ArrayBufferAllocator) {
 		if allocator.self == nil {
@@ -144,7 +144,6 @@ func NewArrayBufferAllocator() *ArrayBufferAllocator {
 // Please be sure to call this function once and keep allocator
 // Please set ac and fc to nil if you don't want a custom one
 func SetArrayBufferAllocator(
-	allocator *ArrayBufferAllocator,
 	ac ArrayBufferAllocateCallback,
 	fc ArrayBufferFreeCallback) {
 	var acPointer, fcPointer unsafe.Pointer
@@ -154,8 +153,11 @@ func SetArrayBufferAllocator(
 	if fc != nil {
 		fcPointer = unsafe.Pointer(&fc)
 	}
-	allocator.self = C.V8_SetArrayBufferAllocator(
-		allocator.self,
+
+	gMutex.Lock()
+	defer gMutex.Unlock()
+	gAllocator.self = C.V8_SetArrayBufferAllocator(
+		gAllocator.self,
 		acPointer,
 		fcPointer)
 }

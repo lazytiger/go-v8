@@ -1575,12 +1575,16 @@ void V8_MessageCallback(Handle< Message > message, Handle< Value > error) {
 	go_message_callback((void*)cmessage, callback, data);
 }
 
-void V8_AddMessageListener(void* engine, void* callback, void* data, int simple) {
-	Handle<Array> args = Array::New(4);
+void V8_AddMessageListener(void* callback, void* data, int simple) {
+	if(callback == NULL) {
+		V8::RemoveMessageListeners(V8_MessageCallback);
+		return;
+	}
+
+	Handle<Array> args = Array::New(3);
 	args->Set(0, External::New(callback));
 	args->Set(1, External::New(data));
 	args->Set(2, Boolean::New(simple));
-	args->Set(3, External::New(engine));
 	V8::AddMessageListener(V8_MessageCallback, args);
 }
 
