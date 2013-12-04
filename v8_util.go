@@ -171,3 +171,12 @@ func go_array_buffer_allocate(callback unsafe.Pointer, length C.size_t, initiali
 func go_array_buffer_free(callback unsafe.Pointer, data unsafe.Pointer, length C.size_t) {
 	(*(*ArrayBufferFreeCallback)(callback))(data, int(length))
 }
+
+func SetCaptureStackTraceForUncaughtExceptions(capture bool, frameLimit int) {
+	icapture := 0
+	if capture {
+		icapture = 1
+	}
+
+	C.V8_SetCaptureStackTraceForUncaughtExceptions(C.int(icapture), C.int(frameLimit))
+}

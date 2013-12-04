@@ -1588,4 +1588,8 @@ void V8_AddMessageListener(void* callback, void* data, int simple) {
 	V8::AddMessageListener(V8_MessageCallback, args);
 }
 
+void V8_SetCaptureStackTraceForUncaughtExceptions(int capture, int frame_limit) {
+	V8::SetCaptureStackTraceForUncaughtExceptions(capture, frame_limit);	
+}
+
 } // extern "C"

@@ -84,7 +84,8 @@ func Test_MessageListener(t *testing.T) {
 			script.Run()
 		}
 
-		cs.AddMessageListener(true, func(message string, data interface{}) {
+		SetCaptureStackTraceForUncaughtExceptions(true, 1)
+		cs.AddMessageListener(false, func(message string, data interface{}) {
 			println("golang2", message)
 		}, nil)
 		script = engine.Compile([]byte(`var test] = ;`), nil, nil)
