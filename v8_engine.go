@@ -13,6 +13,7 @@ var traceDispose = false
 // Represents an isolated instance of the V8 engine.
 // Objects from one engine must not be used in other engine.
 type Engine struct {
+	embedable
 	self             unsafe.Pointer
 	_undefined       *Value
 	_null            *Value
