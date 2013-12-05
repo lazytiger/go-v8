@@ -58,6 +58,23 @@ func (o *Object) GetPropertyAttributes(key string) PropertyAttribute {
 	))
 }
 
+func (o *Object) InternalFieldCount() int {
+	return int(C.V8_Object_InternalFieldCount(o.self))
+}
+
+func (o *Object) GetInternalField(index int) interface{} {
+	data := C.V8_Object_GetInternalField(o.self, C.int(index))
+	return *(*interface{})(data)
+}
+
+func (o *Object) SetInternalField(index int, value interface{}) {
+	C.V8_Object_SetInternalField(
+		o.self,
+		C.int(index),
+		unsafe.Pointer(&value),
+	)
+}
+
 // Sets a local property on this object bypassing interceptors and
 // overriding accessors or read-only properties.
 //

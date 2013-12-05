@@ -54,6 +54,27 @@ func init() {
 	}()
 }
 
+func Test_InternalField(t *testing.T) {
+	iCache := make([]interface{}, 0)
+	ot := engine.NewObjectTemplate()
+	ot.SetInternalFieldCount(1)
+	context := engine.NewContext(nil)
+	context.SetPrivateData(iCache)
+	context.Scope(func(cs ContextScope) {
+		cache := cs.GetPrivateData().([]interface{})
+		str1 := "hello"
+		cache = append(cache, str1)
+		cs.SetPrivateData(cache)
+		obj := ot.NewObject().ToObject()
+		obj.SetInternalField(0, str1)
+		str2 := obj.GetInternalField(0).(string)
+		if str1 != str2 {
+			t.Fatal("data not match")
+		}
+	})
+	context.SetPrivateData(nil)
+}
+
 func Test_GetVersion(t *testing.T) {
 	t.Log(GetVersion())
 }
@@ -503,7 +524,7 @@ func Test_Function(t *testing.T) {
 				t.Fatal(`info.Get(0).ToString() != "Hello World!"`)
 			}
 			info.ReturnValue().SetBoolean(true)
-		}).NewFunction()
+		}, nil).NewFunction()
 
 		if function == nil {
 			t.Fatal("function == nil")
@@ -613,7 +634,7 @@ func Test_NamedPropertyHandler(t *testing.T) {
 
 	func_template := engine.NewFunctionTemplate(func(info FunctionCallbackInfo) {
 		info.ReturnValue().Set(obj_template.NewObject())
-	})
+	}, nil)
 
 	global_template := engine.NewObjectTemplate()
 
@@ -682,7 +703,7 @@ func Test_IndexedPropertyHandler(t *testing.T) {
 
 	func_template := engine.NewFunctionTemplate(func(info FunctionCallbackInfo) {
 		info.ReturnValue().Set(obj_template.NewObject())
-	})
+	}, nil)
 
 	global_template := engine.NewObjectTemplate()
 
@@ -714,7 +735,13 @@ func Test_IndexedPropertyHandler(t *testing.T) {
 }
 
 func Test_ObjectConstructor(t *testing.T) {
-	ftConstructor := engine.NewFunctionTemplate(nil)
+	type MyClass struct {
+		name string
+	}
+	data := new(MyClass)
+	ftConstructor := engine.NewFunctionTemplate(func(info FunctionCallbackInfo) {
+		info.This().SetInternalField(0, data)
+	}, nil)
 	ftConstructor.SetClassName("MyClass")
 
 	obj_template := ftConstructor.InstanceTemplate()
@@ -731,10 +758,16 @@ func Test_ObjectConstructor(t *testing.T) {
 		func(name string, info PropertyCallbackInfo) {
 			//t.Logf("get %s", name)
 			get_called = get_called || name == "abc"
+			data := info.This().ToObject().GetInternalField(0).(*MyClass)
+			cs := info.CurrentScope()
+			info.ReturnValue().Set(cs.NewString(data.name))
 		},
 		func(name string, value *Value, info PropertyCallbackInfo) {
 			//t.Logf("set %s", name)
 			set_called = set_called || name == "abc"
+			data := info.This().ToObject().GetInternalField(0).(*MyClass)
+			data.name = value.ToString()
+			info.ReturnValue().Set(value)
 		},
 		func(name string, info PropertyCallbackInfo) {
 			//t.Logf("query %s", name)
@@ -750,6 +783,7 @@ func Test_ObjectConstructor(t *testing.T) {
 		},
 		nil,
 	)
+	obj_template.SetInternalFieldCount(1)
 
 	engine.NewContext(nil).Scope(func(cs ContextScope) {
 		cs.Global().SetProperty("MyClass", ftConstructor.NewFunction(), PA_None)
@@ -769,6 +803,10 @@ func Test_ObjectConstructor(t *testing.T) {
 		`).ToObject()
 
 		object.GetPropertyAttributes("abc")
+		data := object.GetInternalField(0).(*MyClass)
+		if data.name != "1" {
+			t.Fatal("InternalField failed")
+		}
 
 		if !(get_called && set_called && query_called && delete_called && enum_called) {
 			t.Fatal(get_called, set_called, query_called, delete_called, enum_called)
@@ -807,7 +845,7 @@ func Test_Context(t *testing.T) {
 		for i := 0; i < info.Length(); i++ {
 			println(info.Get(i).ToString())
 		}
-	})
+	}, nil)
 
 	// Test Global Template
 	globalTemplate := engine.NewObjectTemplate()
@@ -1288,7 +1326,7 @@ func Benchmark_GoFunction(b *testing.B) {
 		b.StopTimer()
 		value := engine.NewFunctionTemplate(func(info FunctionCallbackInfo) {
 			info.ReturnValue().SetInt32(123)
-		}).NewFunction()
+		}, nil).NewFunction()
 		function := value.ToFunction()
 		b.StartTimer()
 

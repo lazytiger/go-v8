@@ -192,6 +192,8 @@ extern void* V8_NewNumber(void* context, double val);
 
 extern void* V8_NewString(void* context, const char* val, int val_length);
 
+extern void* V8_NewExternal(void* context, void* data);
+
 /*
 object
 */
@@ -229,6 +231,12 @@ extern int V8_Object_SetPrototype(void *value, void *proto);
 
 extern void V8_Object_SetAccessor(void *value, const char* key, int key_length, void* getter, void* setter, void* data, int attribs);
 
+extern int V8_Object_InternalFieldCount(void* value);
+
+extern void* V8_Object_GetInternalField(void* value, int index);
+
+extern void V8_Object_SetInternalField(void* value, int index, void* data);
+
 extern void* V8_AccessorCallbackInfo_This(void *info, AccessorDataEnum type);
 
 extern void* V8_AccessorCallbackInfo_Holder(void *info, AccessorDataEnum type);
@@ -240,6 +248,7 @@ extern void* V8_PropertyCallbackInfo_This(void *info, PropertyDataEnum typ );
 extern void* V8_PropertyCallbackInfo_Holder(void *info, PropertyDataEnum typ );
 
 extern void* V8_PropertyCallbackInfo_ReturnValue(void *info, PropertyDataEnum typ );
+
 
 /*
 array
@@ -326,10 +335,12 @@ extern void V8_ObjectTemplate_SetIndexedPropertyHandler(
         void* data
 );
 
+extern void V8_ObjectTemplate_SetInternalFieldCount(void *tpl, int count);
+
 /*
 function template
 */
-extern void* V8_NewFunctionTemplate(void* engine, void* callback);
+extern void* V8_NewFunctionTemplate(void* engine, void* callback, void* data);
 
 extern void V8_DisposeFunctionTemplate(void* tpl);
 

@@ -31,13 +31,14 @@ const (
 
 type ObjectTemplate struct {
 	sync.Mutex
-	id          int
-	engine      *Engine
-	accessors   map[string]*accessorInfo
-	namedInfo   *namedPropertyInfo
-	indexedInfo *indexedPropertyInfo
-	properties  map[string]*propertyInfo
-	self        unsafe.Pointer
+	id                 int
+	engine             *Engine
+	accessors          map[string]*accessorInfo
+	namedInfo          *namedPropertyInfo
+	indexedInfo        *indexedPropertyInfo
+	properties         map[string]*propertyInfo
+	self               unsafe.Pointer
+	internalFieldCount int
 }
 
 type namedPropertyInfo struct {
@@ -161,6 +162,15 @@ func (ot *ObjectTemplate) SetProperty(key string, value *Value, attribs Property
 	C.V8_ObjectTemplate_SetProperty(
 		ot.self, (*C.char)(keyPtr), C.int(len(key)), value.self, C.int(attribs),
 	)
+}
+
+func (ot *ObjectTemplate) SetInternalFieldCount(count int) {
+	C.V8_ObjectTemplate_SetInternalFieldCount(ot.self, C.int(count))
+	ot.internalFieldCount = count
+}
+
+func (ot *ObjectTemplate) InternalFieldCount() int {
+	return ot.internalFieldCount
 }
 
 func (ot *ObjectTemplate) SetAccessor(
@@ -473,14 +483,16 @@ type FunctionTemplate struct {
 	id       int
 	engine   *Engine
 	callback FunctionCallback
+	data     interface{}
 	self     unsafe.Pointer
 }
 
-func (e *Engine) NewFunctionTemplate(callback FunctionCallback) *FunctionTemplate {
+func (e *Engine) NewFunctionTemplate(callback FunctionCallback, data interface{}) *FunctionTemplate {
 	ft := &FunctionTemplate{
 		id:       e.funcTemplateId + 1,
 		engine:   e,
 		callback: callback,
+		data:     data,
 	}
 
 	var callbackPtr unsafe.Pointer
@@ -489,7 +501,7 @@ func (e *Engine) NewFunctionTemplate(callback FunctionCallback) *FunctionTemplat
 		callbackPtr = unsafe.Pointer(&(ft.callback))
 	}
 
-	self := C.V8_NewFunctionTemplate(e.self, callbackPtr)
+	self := C.V8_NewFunctionTemplate(e.self, callbackPtr, unsafe.Pointer(&data))
 	if self == nil {
 		return nil
 	}
@@ -549,9 +561,9 @@ func (ft *FunctionTemplate) InstanceTemplate() *ObjectTemplate {
 }
 
 //export go_function_callback
-func go_function_callback(info, callback, context unsafe.Pointer) {
+func go_function_callback(info, callback, context, data unsafe.Pointer) {
 	callbackFunc := *(*func(FunctionCallbackInfo))(callback)
-	callbackFunc(FunctionCallbackInfo{info, ReturnValue{}, (*Context)(context)})
+	callbackFunc(FunctionCallbackInfo{info, ReturnValue{}, (*Context)(context), *(*interface{})(data)})
 }
 
 func (f *Function) Call(args ...*Value) *Value {
@@ -614,6 +626,7 @@ type FunctionCallbackInfo struct {
 	self        unsafe.Pointer
 	returnValue ReturnValue
 	context     *Context
+	data        interface{}
 }
 
 func (fc FunctionCallbackInfo) CurrentScope() ContextScope {
@@ -638,6 +651,10 @@ func (fc FunctionCallbackInfo) This() *Object {
 
 func (fc FunctionCallbackInfo) Holder() *Object {
 	return newValue(C.V8_FunctionCallbackInfo_Holder(fc.self)).ToObject()
+}
+
+func (fc FunctionCallbackInfo) Data() interface{} {
+	return fc.data
 }
 
 func (fc *FunctionCallbackInfo) ReturnValue() ReturnValue {

@@ -22,6 +22,14 @@ type ContextScope struct {
 	context *Context
 }
 
+func (cs ContextScope) GetPrivateData() interface{} {
+	return cs.context.GetPrivateData()
+}
+
+func (cs ContextScope) SetPrivateData(data interface{}) {
+	cs.context.SetPrivateData(data)
+}
+
 func (e *Engine) NewContext(globalTemplate *ObjectTemplate) *Context {
 	var globalTemplatePtr unsafe.Pointer
 	if globalTemplate != nil {
