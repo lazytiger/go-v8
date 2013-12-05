@@ -1158,10 +1158,11 @@ void V8_FunctionCallback(const v8::FunctionCallbackInfo<Value>& info) {
 	callback_info.returnValue = NULL;
 
 	void* callback = Local<External>::Cast(callback_data->Get(1))->Value();
+	void* data = Local<External>::Cast(callback_data->Get(2))->Value();
 
 	void* context_ptr = V8_Current_ContextPtr(isolate);
 
-	go_function_callback(&callback_info, callback, context_ptr);
+	go_function_callback(&callback_info, callback, context_ptr, data);
 
 	if (callback_info.returnValue != NULL)
 		delete callback_info.returnValue;
@@ -1473,18 +1474,19 @@ void V8_ObjectTemplate_SetInternalFieldCount(void* tpl, int count) {
 /*
 function template
 */
-void* V8_NewFunctionTemplate(void* engine, void* callback) {
+void* V8_NewFunctionTemplate(void* engine, void* callback, void* data) {
 	ENGINE_SCOPE(engine);
 
 	HandleScope scope(isolate);
 
-	Handle<Array> callback_data = Array::New(2);
+	Handle<Array> callback_data = Array::New(3);
 
 	if (callback_data.IsEmpty())
 		return NULL;
 
 	callback_data->Set(0, External::New(engine));
 	callback_data->Set(1, External::New(callback));
+	callback_data->Set(2, External::New(data));
 
 	Handle<FunctionTemplate> tpl = callback == NULL ? FunctionTemplate::New() : FunctionTemplate::New(
 		V8_FunctionCallback, callback_data

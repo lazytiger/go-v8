@@ -518,7 +518,7 @@ func Test_Function(t *testing.T) {
 				t.Fatal(`info.Get(0).ToString() != "Hello World!"`)
 			}
 			info.ReturnValue().SetBoolean(true)
-		}).NewFunction()
+		}, nil).NewFunction()
 
 		if function == nil {
 			t.Fatal("function == nil")
@@ -628,7 +628,7 @@ func Test_NamedPropertyHandler(t *testing.T) {
 
 	func_template := engine.NewFunctionTemplate(func(info FunctionCallbackInfo) {
 		info.ReturnValue().Set(obj_template.NewObject())
-	})
+	}, nil)
 
 	global_template := engine.NewObjectTemplate()
 
@@ -697,7 +697,7 @@ func Test_IndexedPropertyHandler(t *testing.T) {
 
 	func_template := engine.NewFunctionTemplate(func(info FunctionCallbackInfo) {
 		info.ReturnValue().Set(obj_template.NewObject())
-	})
+	}, nil)
 
 	global_template := engine.NewObjectTemplate()
 
@@ -736,7 +736,7 @@ func Test_ObjectConstructor(t *testing.T) {
 		cs := info.CurrentScope()
 		data := cs.NewExternal(new(MyClass))
 		info.This().SetInternalField(0, data)
-	})
+	}, nil)
 	ftConstructor.SetClassName("MyClass")
 
 	obj_template := ftConstructor.InstanceTemplate()
@@ -840,7 +840,7 @@ func Test_Context(t *testing.T) {
 		for i := 0; i < info.Length(); i++ {
 			println(info.Get(i).ToString())
 		}
-	})
+	}, nil)
 
 	// Test Global Template
 	globalTemplate := engine.NewObjectTemplate()
@@ -1321,7 +1321,7 @@ func Benchmark_GoFunction(b *testing.B) {
 		b.StopTimer()
 		value := engine.NewFunctionTemplate(func(info FunctionCallbackInfo) {
 			info.ReturnValue().SetInt32(123)
-		}).NewFunction()
+		}, nil).NewFunction()
 		function := value.ToFunction()
 		b.StartTimer()
 

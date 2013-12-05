@@ -340,7 +340,7 @@ extern void V8_ObjectTemplate_SetInternalFieldCount(void *tpl, int count);
 /*
 function template
 */
-extern void* V8_NewFunctionTemplate(void* engine, void* callback);
+extern void* V8_NewFunctionTemplate(void* engine, void* callback, void* data);
 
 extern void V8_DisposeFunctionTemplate(void* tpl);
 
