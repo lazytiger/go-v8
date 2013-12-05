@@ -729,7 +729,14 @@ func Test_IndexedPropertyHandler(t *testing.T) {
 }
 
 func Test_ObjectConstructor(t *testing.T) {
-	ftConstructor := engine.NewFunctionTemplate(nil)
+	type MyClass struct {
+		name string
+	}
+	ftConstructor := engine.NewFunctionTemplate(func(info FunctionCallbackInfo) {
+		cs := info.CurrentScope()
+		data := cs.NewExternal(new(MyClass))
+		info.This().SetInternalField(0, data)
+	})
 	ftConstructor.SetClassName("MyClass")
 
 	obj_template := ftConstructor.InstanceTemplate()
@@ -746,10 +753,16 @@ func Test_ObjectConstructor(t *testing.T) {
 		func(name string, info PropertyCallbackInfo) {
 			//t.Logf("get %s", name)
 			get_called = get_called || name == "abc"
+			data := info.This().ToObject().GetInternalField(0).(*MyClass)
+			cs := info.CurrentScope()
+			info.ReturnValue().Set(cs.NewString(data.name))
 		},
 		func(name string, value *Value, info PropertyCallbackInfo) {
 			//t.Logf("set %s", name)
 			set_called = set_called || name == "abc"
+			data := info.This().ToObject().GetInternalField(0).(*MyClass)
+			data.name = value.ToString()
+			info.ReturnValue().Set(value)
 		},
 		func(name string, info PropertyCallbackInfo) {
 			//t.Logf("query %s", name)
@@ -785,6 +798,10 @@ func Test_ObjectConstructor(t *testing.T) {
 		`).ToObject()
 
 		object.GetPropertyAttributes("abc")
+		data := object.GetInternalField(0).(*MyClass)
+		if data.name != "1" {
+			t.Fatal("InternalField failed")
+		}
 
 		if !(get_called && set_called && query_called && delete_called && enum_called) {
 			t.Fatal(get_called, set_called, query_called, delete_called, enum_called)
