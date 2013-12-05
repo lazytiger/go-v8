@@ -31,13 +31,14 @@ const (
 
 type ObjectTemplate struct {
 	sync.Mutex
-	id          int
-	engine      *Engine
-	accessors   map[string]*accessorInfo
-	namedInfo   *namedPropertyInfo
-	indexedInfo *indexedPropertyInfo
-	properties  map[string]*propertyInfo
-	self        unsafe.Pointer
+	id                 int
+	engine             *Engine
+	accessors          map[string]*accessorInfo
+	namedInfo          *namedPropertyInfo
+	indexedInfo        *indexedPropertyInfo
+	properties         map[string]*propertyInfo
+	self               unsafe.Pointer
+	internalFieldCount int
 }
 
 type namedPropertyInfo struct {
@@ -161,6 +162,15 @@ func (ot *ObjectTemplate) SetProperty(key string, value *Value, attribs Property
 	C.V8_ObjectTemplate_SetProperty(
 		ot.self, (*C.char)(keyPtr), C.int(len(key)), value.self, C.int(attribs),
 	)
+}
+
+func (ot *ObjectTemplate) SetInternalFieldCount(count int) {
+	C.V8_ObjectTemplate_SetInternalFieldCount(ot.self, C.int(count))
+	ot.internalFieldCount = count
+}
+
+func (ot *ObjectTemplate) InternalFieldCount() int {
+	return ot.internalFieldCount
 }
 
 func (ot *ObjectTemplate) SetAccessor(
@@ -308,8 +318,8 @@ type PropertyCallbackInfo struct {
 	context     *Context
 }
 
-func (p PropertyCallbackInfo) CurrentScope() ContextScope {
-	return ContextScope{p.context}
+func (p PropertyCallbackInfo) CurrentScope() *ContextScope {
+	return p.context.cs
 }
 
 func (p PropertyCallbackInfo) This() *Object {
@@ -341,8 +351,8 @@ type AccessorCallbackInfo struct {
 	typ         C.AccessorDataEnum
 }
 
-func (ac AccessorCallbackInfo) CurrentScope() ContextScope {
-	return ContextScope{ac.context}
+func (ac AccessorCallbackInfo) CurrentScope() *ContextScope {
+	return ac.context.cs
 }
 
 func (ac AccessorCallbackInfo) This() *Object {
@@ -616,8 +626,8 @@ type FunctionCallbackInfo struct {
 	context     *Context
 }
 
-func (fc FunctionCallbackInfo) CurrentScope() ContextScope {
-	return ContextScope{fc.context}
+func (fc FunctionCallbackInfo) CurrentScope() *ContextScope {
+	return fc.context.cs
 }
 
 func (fc FunctionCallbackInfo) Get(i int) *Value {

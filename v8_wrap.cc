@@ -269,7 +269,6 @@ void V8_Context_Scope(void* context, void* context_ptr, void* callback) {
 	// Make nested context scropt use the outermost HandleScope
 	if (prev_context == NULL) {
 		HandleScope handle_scope(isolate);
-
 		Context::Scope scope(Local<Context>::New(isolate, ctx->self));
 		context_scope_callback(context_ptr, callback);
 	} else {
@@ -696,6 +695,24 @@ void* V8_NewObject(void* context) {
 	CONTEXT_SCOPE(context);
 
 	return new_V8_Value(the_context, Object::New());
+}
+
+int V8_Object_InternalFieldCount(void* value) {
+	VALUE_SCOPE(value);
+	return Local<Object>::Cast(local_value)->InternalFieldCount();
+}
+
+void* V8_Object_GetInternalField(void* value, int index) {
+	VALUE_SCOPE(value);
+	Local<Object> obj = Local<Object>::Cast(local_value);
+	Local<Value> data = obj->GetInternalField(index);
+	return Local<External>::Cast(data)->Value();
+}
+
+void V8_Object_SetInternalField(void* value, int index, void* data) {
+	VALUE_SCOPE(value);
+	Local<Object> obj = Local<Object>::Cast(local_value);
+	obj->SetInternalField(index, External::New(data));
 }
 
 int V8_Object_SetProperty(void* value, const char* key, int key_length, void* prop_value, int attribs) {
@@ -1445,6 +1462,11 @@ void V8_ObjectTemplate_SetIndexedPropertyHandler(
 		enumerator == NULL ? NULL : V8_IndexedPropertyEnumeratorCallback,
  		callback_info
 	);
+}
+
+void V8_ObjectTemplate_SetInternalFieldCount(void* tpl, int count) {
+	OBJECT_TEMPLATE_HANDLE_SCOPE(tpl);
+	local_template->SetInternalFieldCount(count);
 }
 
 
