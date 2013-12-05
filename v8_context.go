@@ -7,7 +7,6 @@ package v8
 import "C"
 import "unsafe"
 import "runtime"
-import "sync"
 
 //import "reflect"
 
@@ -17,19 +16,18 @@ type Context struct {
 	embedable
 	self   unsafe.Pointer
 	engine *Engine
-	mutex  sync.Mutex
-	cs     *ContextScope
 }
 
 type ContextScope struct {
 	context *Context
-	id      int
-	cache   map[int]interface{}
 }
 
-func (cs *ContextScope) addCache(data interface{}) {
-	cs.cache[cs.id] = data
-	cs.id++
+func (cs ContextScope) GetPrivateData() interface{} {
+	return cs.context.GetPrivateData()
+}
+
+func (cs ContextScope) SetPrivateData(data interface{}) {
+	cs.context.SetPrivateData(data)
 }
 
 func (e *Engine) NewContext(globalTemplate *ObjectTemplate) *Context {
@@ -60,22 +58,11 @@ func (e *Engine) NewContext(globalTemplate *ObjectTemplate) *Context {
 
 //export context_scope_callback
 func context_scope_callback(c unsafe.Pointer, callback unsafe.Pointer) {
-	(*(*func(*ContextScope))(callback))((*Context)(c).cs)
+	(*(*func(ContextScope))(callback))(ContextScope{(*Context)(c)})
 }
 
-func (c *Context) Scope(callback func(*ContextScope)) {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-	if c.cs != nil {
-		panic("already in a scope")
-	}
-	c.cs = &ContextScope{
-		cache:   make(map[int]interface{}),
-		id:      0,
-		context: c,
-	}
+func (c *Context) Scope(callback func(ContextScope)) {
 	C.V8_Context_Scope(c.self, unsafe.Pointer(c), unsafe.Pointer(&callback))
-	c.cs = nil
 }
 
 //export try_catch_callback

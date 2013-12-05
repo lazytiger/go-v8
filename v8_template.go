@@ -318,8 +318,8 @@ type PropertyCallbackInfo struct {
 	context     *Context
 }
 
-func (p PropertyCallbackInfo) CurrentScope() *ContextScope {
-	return p.context.cs
+func (p PropertyCallbackInfo) CurrentScope() ContextScope {
+	return ContextScope{p.context}
 }
 
 func (p PropertyCallbackInfo) This() *Object {
@@ -351,8 +351,8 @@ type AccessorCallbackInfo struct {
 	typ         C.AccessorDataEnum
 }
 
-func (ac AccessorCallbackInfo) CurrentScope() *ContextScope {
-	return ac.context.cs
+func (ac AccessorCallbackInfo) CurrentScope() ContextScope {
+	return ContextScope{ac.context}
 }
 
 func (ac AccessorCallbackInfo) This() *Object {
@@ -629,8 +629,8 @@ type FunctionCallbackInfo struct {
 	data        interface{}
 }
 
-func (fc FunctionCallbackInfo) CurrentScope() *ContextScope {
-	return fc.context.cs
+func (fc FunctionCallbackInfo) CurrentScope() ContextScope {
+	return ContextScope{fc.context}
 }
 
 func (fc FunctionCallbackInfo) Get(i int) *Value {

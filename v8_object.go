@@ -67,11 +67,11 @@ func (o *Object) GetInternalField(index int) interface{} {
 	return *(*interface{})(data)
 }
 
-func (o *Object) SetInternalField(index int, value *External) {
+func (o *Object) SetInternalField(index int, value interface{}) {
 	C.V8_Object_SetInternalField(
 		o.self,
 		C.int(index),
-		unsafe.Pointer(&value.data),
+		unsafe.Pointer(&value),
 	)
 }
 

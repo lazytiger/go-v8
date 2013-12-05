@@ -17,10 +17,6 @@ type Value struct {
 	notType int
 }
 
-type External struct {
-	data interface{}
-}
-
 func newValue(self unsafe.Pointer) *Value {
 	if self == nil {
 		return nil
@@ -92,11 +88,6 @@ func (cs ContextScope) NewString(value string) *Value {
 	return newValue(C.V8_NewString(
 		cs.context.self, (*C.char)(valPtr), C.int(len(value)),
 	))
-}
-
-func (cs *ContextScope) NewExternal(value interface{}) *External {
-	cs.addCache(value)
-	return &External{value}
 }
 
 func (v *Value) ToBoolean() bool {
