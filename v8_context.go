@@ -22,6 +22,10 @@ type ContextScope struct {
 	context *Context
 }
 
+func (cs ContextScope) GetEngine() *Engine {
+	return cs.context.engine
+}
+
 func (cs ContextScope) GetPrivateData() interface{} {
 	return cs.context.GetPrivateData()
 }
